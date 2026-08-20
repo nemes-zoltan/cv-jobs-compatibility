@@ -1,0 +1,20 @@
+{
+  "files": [],
+  "include": [],
+  "compilerOptions": {
+    "paths": {
+      "@cv-jobs-compatibility/components/*": [
+        "./src/*"
+      ]
+    }
+  },
+  "references": [
+    {
+      "path": "./tsconfig.lib.json"
+    },
+    {
+      "path": "./tsconfig.spec.json"
+    }
+  ],
+  "extends": "../../../tsconfig.base.json"
+}

@@ -2,4 +2,5 @@ autoInstallPeers: true
 allowBuilds:
   nx: true
 packages:
-  - 'apps/*'
+  - "apps/*"
+  - "libs/ui/*"

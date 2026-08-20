@@ -1,0 +1,25 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "radix-nova",
+  "rsc": true,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "src/styles/globals.css",
+    "baseColor": "neutral",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "iconLibrary": "lucide",
+  "rtl": false,
+  "aliases": {
+    "components": "@cv-jobs-compatibility/components/components",
+    "utils": "@cv-jobs-compatibility/components/lib/utils",
+    "ui": "@cv-jobs-compatibility/components/components/ui",
+    "lib": "@cv-jobs-compatibility/components/lib",
+    "hooks": "@cv-jobs-compatibility/components/hooks"
+  },
+  "menuColor": "default",
+  "menuAccent": "subtle",
+  "registries": {}
+}

@@ -86,6 +86,11 @@ pnpm exec nx serve @cv-jobs-compatibility/api
 pnpm exec nx dev @cv-jobs-compatibility/web
 ```
 
+## Workspace
+
+- TypeScript package: `pnpm exec nx g @nx/js:library libs/<name>`
+- React lib package: `pnpm exec nx g @nx/react:library libs/<name>`
+
 ## Project layout
 
 ```text
@@ -93,6 +98,9 @@ pnpm exec nx dev @cv-jobs-compatibility/web
 ├── apps/
 │   ├── api/          # NestJS backend
 │   └── web/          # Next.js frontend
+├── libs/
+│   └── ui/
+│       └── components/   # shadcn component library
 ├── nx.json
 ├── package.json
 └── pnpm-workspace.yaml
@@ -102,3 +110,4 @@ Per-app details (ports, env vars, extra targets) live in:
 
 - [apps/api/README.md](apps/api/README.md)
 - [apps/web/README.md](apps/web/README.md)
+- [libs/ui/components/README.md](libs/ui/components/README.md) — adding shadcn components
