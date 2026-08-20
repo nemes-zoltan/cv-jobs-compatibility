@@ -1,96 +1,104 @@
-# CvJobsCompatibility
+# CV Jobs Compatibility
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+Nx monorepo with a NestJS API and a Next.js web app.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+## Apps
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/getting-started/intro#learn-nx?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+| App | Package | Stack | Local URL |
+| --- | --- | --- | --- |
+| [API](apps/api/README.md) | `@cv-jobs-compatibility/api` | NestJS | http://localhost:4000/api |
+| [Web](apps/web/README.md) | `@cv-jobs-compatibility/web` | Next.js | http://localhost:3000 |
 
-## Run tasks
+## Prerequisites
 
-To run tasks with Nx use:
+- Node.js 22+
+- [pnpm](https://pnpm.io/installation) 9+
 
-```sh
-npx nx <target> <project-name>
+## Setup
+
+```bash
+pnpm install
 ```
 
-For example:
+## Quick start
 
-```sh
-npx nx build myproject
+Run both apps in parallel:
+
+```bash
+pnpm dev
 ```
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+Or start them separately:
 
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Add new projects
-
-While you could add new projects to your workspace manually, you might want to leverage [Nx plugins](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) and their [code generation](https://nx.dev/features/generate-code?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) feature.
-
-To install a new plugin you can use the `nx add` command. Here's an example of adding the React plugin:
-```sh
-npx nx add @nx/react
+```bash
+pnpm dev:api
+pnpm dev:web
 ```
 
-Use the plugin's generator to create new projects. For example, to create a new React app or library:
+The API listens on port `4000` and the web app on port `3000`. Both are set in each app's `.env` (copy `.env.example` to `.env` on a fresh clone).
 
-```sh
-# Generate an app
-npx nx g @nx/react:app demo
+## Commands
 
-# Generate a library
-npx nx g @nx/react:lib some-lib
+All scripts run from the repository root.
+
+### Develop
+
+| Command | Description |
+| --- | --- |
+| `pnpm dev` | Start API and web together |
+| `pnpm dev:api` | Start the NestJS API (watch) |
+| `pnpm dev:web` | Start the Next.js app (watch) |
+
+### Build & production
+
+| Command | Description |
+| --- | --- |
+| `pnpm build` | Build all apps |
+| `pnpm build:api` | Build the API |
+| `pnpm build:web` | Build the web app |
+| `pnpm start:web` | Serve the production web build |
+
+The API has no separate start script: after `pnpm build:api`, run the compiled output with `node apps/api/dist/main.js`.
+
+### Test & lint
+
+| Command | Description |
+| --- | --- |
+| `pnpm test` | Run unit tests for all apps |
+| `pnpm test:api` | Run API unit tests |
+| `pnpm test:web` | Run web unit tests |
+| `pnpm lint` | Lint all apps |
+| `pnpm lint:api` | Lint the API |
+| `pnpm lint:web` | Lint the web app |
+
+### Nx
+
+| Command | Description |
+| --- | --- |
+| `pnpm graph` | Open the interactive project graph |
+| `pnpm exec nx show project @cv-jobs-compatibility/api` | Inspect API targets |
+| `pnpm exec nx show project @cv-jobs-compatibility/web` | Inspect web targets |
+
+Equivalent Nx commands work the same way, for example:
+
+```bash
+pnpm exec nx serve @cv-jobs-compatibility/api
+pnpm exec nx dev @cv-jobs-compatibility/web
 ```
 
-You can use `npx nx list` to get a list of installed plugins. Then, run `npx nx list <plugin-name>` to learn about more specific capabilities of a particular plugin. Alternatively, [install Nx Console](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) to browse plugins and generators in your IDE.
+## Project layout
 
-[Learn more about Nx plugins &raquo;](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) | [Browse the plugin registry &raquo;](https://nx.dev/plugin-registry?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Set up CI!
-
-### Step 1
-
-To connect to Nx Cloud, run the following command:
-
-```sh
-npx nx connect
+```text
+.
+├── apps/
+│   ├── api/          # NestJS backend
+│   └── web/          # Next.js frontend
+├── nx.json
+├── package.json
+└── pnpm-workspace.yaml
 ```
 
-Connecting to Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
+Per-app details (ports, env vars, extra targets) live in:
 
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-### Step 2
-
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
-```
-
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Install Nx Console
-
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
-
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Useful links
-
-Learn more:
-
-- [Learn more about this workspace setup](https://nx.dev/getting-started/intro#learn-nx?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+- [apps/api/README.md](apps/api/README.md)
+- [apps/web/README.md](apps/web/README.md)

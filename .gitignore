@@ -34,6 +34,11 @@ yarn-error.log
 testem.log
 /typings
 
+# Environment files (keep .env.example tracked)
+.env
+.env.*
+!.env.example
+
 # System Files
 .DS_Store
 Thumbs.db
@@ -43,3 +48,8 @@ Thumbs.db
 .nx/migrate-runs
 .claude/worktrees
 .claude/settings.local.json
+
+# Next.js
+.next
+out
+test-output

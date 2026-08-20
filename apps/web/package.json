@@ -1,0 +1,24 @@
+{
+  "name": "@cv-jobs-compatibility/web",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "targets": {
+      "dev": {
+        "options": {
+          "port": 3000
+        }
+      },
+      "start": {
+        "options": {
+          "port": 3000
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "next": "~16.1.6",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}
