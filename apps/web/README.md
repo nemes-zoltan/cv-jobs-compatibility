@@ -43,12 +43,9 @@ Run these from the repository root.
 | Command | Description |
 | --- | --- |
 | `pnpm dev:web` | Next.js development server |
-| `pnpm build:web` | Production build |
 | `pnpm start:web` | Serve the production build |
-| `pnpm test:web` | Jest unit tests |
-| `pnpm lint:web` | ESLint |
 
-Nx equivalents:
+Everything else runs through Nx:
 
 ```bash
 pnpm exec nx dev @cv-jobs-compatibility/web
@@ -61,7 +58,7 @@ pnpm exec nx lint @cv-jobs-compatibility/web
 ### Production
 
 ```bash
-pnpm build:web
+pnpm exec nx build @cv-jobs-compatibility/web
 pnpm start:web
 ```
 

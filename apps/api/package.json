@@ -2,6 +2,16 @@
   "name": "@cv-jobs-compatibility/api",
   "version": "0.0.1",
   "private": true,
+  "scripts": {
+    "db:up": "docker compose -f ../../docker-compose.yml up -d --wait postgres",
+    "db:down": "docker compose -f ../../docker-compose.yml down",
+    "db:reset": "docker compose -f ../../docker-compose.yml down -v && pnpm run db:up",
+    "db:logs": "docker compose -f ../../docker-compose.yml logs -f postgres",
+    "db:psql": "docker compose -f ../../docker-compose.yml exec postgres sh -c 'psql -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\"'",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
+  },
   "nx": {
     "targets": {
       "build": {
@@ -86,11 +96,16 @@
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
+    "drizzle-orm": "^0.45.2",
+    "pg": "^8.23.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.0",
     "tslib": "^2.3.0"
   },
   "devDependencies": {
-    "@nestjs/testing": "^11.0.0"
+    "@nestjs/testing": "^11.0.0",
+    "@types/pg": "^8.23.1",
+    "dotenv": "^17.4.2",
+    "drizzle-kit": "^0.31.10"
   }
 }

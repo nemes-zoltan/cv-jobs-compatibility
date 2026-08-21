@@ -1,0 +1,20 @@
+import { PoolConfig } from 'pg'
+import { BaseConfigService } from './config.service'
+
+export class ProductionConfigService extends BaseConfigService {
+  readonly databasePoolMax = Number(process.env.DATABASE_POOL_MAX ?? 20)
+
+  private readonly caCert = process.env.DATABASE_CA_CERT
+
+  /**
+   * RDS presents a certificate signed by an Amazon CA that Node does not trust
+   * out of the box. Pass the RDS CA bundle in `DATABASE_CA_CERT` to get a fully
+   * verified connection; without it the traffic is still encrypted, but the
+   * server identity is not checked.
+   */
+  readonly databaseSsl: PoolConfig['ssl'] = this.caCert
+    ? { ca: this.caCert, rejectUnauthorized: true }
+    : { rejectUnauthorized: false }
+
+  readonly databaseLogging = false
+}

@@ -1,0 +1,29 @@
+# Local development database. Deployed environments use managed Postgres, so
+# these credentials never leave a developer machine and are spelled out here.
+name: cv-jobs-compatibility
+
+services:
+  postgres:
+    # Plain Postgres 17 that also ships the pgvector binaries. The extension is
+    # NOT enabled - enabling it later is a migration, not an image swap.
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cvjobs
+      POSTGRES_PASSWORD: cvjobs_dev_password
+      POSTGRES_DB: cvjobs
+      POSTGRES_INITDB_ARGS: --data-checksums
+    ports:
+      # Loopback only, so the database is not reachable from the network.
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U cvjobs -d cvjobs']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  postgres-data:

@@ -6,25 +6,13 @@
     "dev": "nx run-many -t serve -t dev --projects=@cv-jobs-compatibility/api,@cv-jobs-compatibility/web --output-style=stream",
     "dev:api": "nx serve @cv-jobs-compatibility/api --output-style=stream-without-prefixes",
     "dev:web": "nx dev @cv-jobs-compatibility/web --output-style=stream-without-prefixes",
-    "build": "nx run-many -t build",
-    "build:api": "nx build @cv-jobs-compatibility/api",
-    "build:web": "nx build @cv-jobs-compatibility/web",
-    "start:web": "nx start @cv-jobs-compatibility/web --output-style=stream-without-prefixes",
-    "test": "nx run-many -t test",
-    "test:api": "nx test @cv-jobs-compatibility/api",
-    "test:web": "nx test @cv-jobs-compatibility/web",
-    "lint": "nx run-many -t lint",
-    "lint:api": "nx lint @cv-jobs-compatibility/api",
-    "lint:web": "nx lint @cv-jobs-compatibility/web",
-    "graph": "nx graph"
+    "start:web": "nx start @cv-jobs-compatibility/web --output-style=stream-without-prefixes"
   },
   "private": true,
   "devDependencies": {
     "@babel/core": "^7.14.5",
     "@babel/preset-react": "^7.14.5",
     "@eslint/js": "^9.8.0",
-    "@nestjs/schematics": "^11.0.0",
-    "@nestjs/testing": "^11.0.0",
     "@next/eslint-plugin-next": "^16.1.6",
     "@nx/eslint": "23.1.1",
     "@nx/eslint-plugin": "23.1.1",
@@ -75,14 +63,8 @@
     "webpack-dev-server": "^5.2.1"
   },
   "dependencies": {
-    "@nestjs/common": "^11.0.0",
-    "@nestjs/core": "^11.0.0",
-    "@nestjs/platform-express": "^11.0.0",
-    "axios": "^1.6.0",
     "next": "~16.1.6",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "reflect-metadata": "^0.2.0",
-    "rxjs": "^7.8.0"
+    "react-dom": "^19.0.0"
   }
 }

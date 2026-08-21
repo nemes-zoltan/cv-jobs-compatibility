@@ -2,22 +2,29 @@
 
 Nx monorepo with a NestJS API and a Next.js web app.
 
-## Apps
+## Packages
 
-| App | Package | Stack | Local URL |
-| --- | --- | --- | --- |
-| [API](apps/api/README.md) | `@cv-jobs-compatibility/api` | NestJS | http://localhost:4000/api |
-| [Web](apps/web/README.md) | `@cv-jobs-compatibility/web` | Next.js | http://localhost:3000 |
+| Package | Path | Stack | Local URL | Docs |
+| --- | --- | --- | --- | --- |
+| `@cv-jobs-compatibility/api` | `apps/api` | NestJS, Drizzle, Postgres | http://localhost:4000/api | [README](apps/api/README.md) |
+| `@cv-jobs-compatibility/web` | `apps/web` | Next.js | http://localhost:3000 | [README](apps/web/README.md) |
+| `@cv-jobs-compatibility/components` | `libs/ui/components` | shadcn component library | — | [README](libs/ui/components/README.md) |
+
+Ports, environment variables, database setup and per-package commands live in those READMEs.
 
 ## Prerequisites
 
 - Node.js 22+
 - [pnpm](https://pnpm.io/installation) 9+
+- Docker (for the Postgres container)
 
 ## Setup
 
 ```bash
 pnpm install
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env
+pnpm --filter @cv-jobs-compatibility/api run db:up    # start Postgres
 ```
 
 ## Quick start
@@ -35,79 +42,55 @@ pnpm dev:api
 pnpm dev:web
 ```
 
-The API listens on port `4000` and the web app on port `3000`. Both are set in each app's `.env` (copy `.env.example` to `.env` on a fresh clone).
-
-## Commands
-
-All scripts run from the repository root.
-
-### Develop
+The API listens on port `4000` and the web app on port `3000`. The API refuses to start when Postgres is unreachable, so bring the database up first — see [Database](apps/api/README.md#database) in the API README.
 
 | Command | Description |
 | --- | --- |
 | `pnpm dev` | Start API and web together |
 | `pnpm dev:api` | Start the NestJS API (watch) |
 | `pnpm dev:web` | Start the Next.js app (watch) |
-
-### Build & production
-
-| Command | Description |
-| --- | --- |
-| `pnpm build` | Build all apps |
-| `pnpm build:api` | Build the API |
-| `pnpm build:web` | Build the web app |
 | `pnpm start:web` | Serve the production web build |
 
-The API has no separate start script: after `pnpm build:api`, run the compiled output with `node apps/api/dist/main.js`.
+These are the only scripts in the root `package.json`; database and migration scripts live in `apps/api`.
 
-### Test & lint
+## Working in the workspace
 
-| Command | Description |
-| --- | --- |
-| `pnpm test` | Run unit tests for all apps |
-| `pnpm test:api` | Run API unit tests |
-| `pnpm test:web` | Run web unit tests |
-| `pnpm lint` | Lint all apps |
-| `pnpm lint:api` | Lint the API |
-| `pnpm lint:web` | Lint the web app |
-
-### Nx
-
-| Command | Description |
-| --- | --- |
-| `pnpm graph` | Open the interactive project graph |
-| `pnpm exec nx show project @cv-jobs-compatibility/api` | Inspect API targets |
-| `pnpm exec nx show project @cv-jobs-compatibility/web` | Inspect web targets |
-
-Equivalent Nx commands work the same way, for example:
+### Adding a package
 
 ```bash
-pnpm exec nx serve @cv-jobs-compatibility/api
-pnpm exec nx dev @cv-jobs-compatibility/web
+pnpm exec nx g @nx/js:library libs/<name>        # TypeScript package
+pnpm exec nx g @nx/react:library libs/<name>     # React package
+pnpm exec nx g @nx/nest:app apps/<name>          # NestJS app
 ```
 
-## Workspace
+Add the directory to `packages:` in `pnpm-workspace.yaml` if it falls outside the existing globs (`apps/*`, `libs/ui/*`), then run `pnpm install` to link it.
 
-- TypeScript package: `pnpm exec nx g @nx/js:library libs/<name>`
-- React lib package: `pnpm exec nx g @nx/react:library libs/<name>`
+### Adding a dependency
 
-## Project layout
+Install into the package that imports it, never into the root:
 
-```text
-.
-├── apps/
-│   ├── api/          # NestJS backend
-│   └── web/          # Next.js frontend
-├── libs/
-│   └── ui/
-│       └── components/   # shadcn component library
-├── nx.json
-├── package.json
-└── pnpm-workspace.yaml
+```bash
+pnpm --filter @cv-jobs-compatibility/api add drizzle-orm
+pnpm --filter @cv-jobs-compatibility/web add -D some-dev-tool
 ```
 
-Per-app details (ports, env vars, extra targets) live in:
+The root manifest carries only workspace-wide tooling (Nx, ESLint, TypeScript, Jest).
 
-- [apps/api/README.md](apps/api/README.md)
-- [apps/web/README.md](apps/web/README.md)
-- [libs/ui/components/README.md](libs/ui/components/README.md) — adding shadcn components
+### Build, test, lint
+
+Every project exposes the same Nx targets:
+
+```bash
+pnpm exec nx run-many -t build          # every project
+pnpm exec nx run-many -t test
+pnpm exec nx run-many -t lint
+
+pnpm exec nx build @cv-jobs-compatibility/api    # a single project
+pnpm exec nx test @cv-jobs-compatibility/web
+```
+
+| Command | Description |
+| --- | --- |
+| `pnpm exec nx graph` | Open the interactive project graph |
+| `pnpm exec nx show project <name>` | List a project's targets |
+| `pnpm exec nx affected -t test` | Run a target only for projects touched since `main` |
