@@ -1,14 +1,11 @@
+import type { HealthResponse } from '@cv-jobs-compatibility/types'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { sql } from 'drizzle-orm'
 import { DRIZZLE } from '../database/database.constants'
-import { Database } from '../database/database.module'
+import type { Database } from '../database/database.module'
 
-export type ServiceStatus = 'up' | 'down'
-
-export interface HealthReport {
-  status: 'ok' | 'degraded'
-  services: { database: ServiceStatus }
-}
+/** Read off the shared contract so the two cannot drift apart. */
+type ServiceStatus = HealthResponse['services']['database']
 
 @Injectable()
 export class HealthService {
@@ -16,7 +13,7 @@ export class HealthService {
 
   constructor(@Inject(DRIZZLE) private readonly db: Database) {}
 
-  async check(): Promise<HealthReport> {
+  async check(): Promise<HealthResponse> {
     const database = await this.checkDatabase()
     return {
       status: database === 'up' ? 'ok' : 'degraded',

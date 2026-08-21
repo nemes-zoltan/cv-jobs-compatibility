@@ -38,16 +38,6 @@ Browse the full component list at
 import { Button } from '@cv-jobs-compatibility/components';
 ```
 
-## Layout
-
-```text
-src/
-├── components/ui/   # shadcn components (CLI writes here)
-├── lib/utils.ts     # cn() helper
-├── styles/globals.css
-└── index.ts         # public exports
-```
-
 ## Styling
 
 `src/styles/globals.css` owns Tailwind, the shadcn theme, and the dark variant.

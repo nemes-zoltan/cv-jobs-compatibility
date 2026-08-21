@@ -9,8 +9,9 @@ Nx monorepo with a NestJS API and a Next.js web app.
 | `@cv-jobs-compatibility/api` | `apps/api` | NestJS, Drizzle, Postgres | http://localhost:4000/api | [README](apps/api/README.md) |
 | `@cv-jobs-compatibility/web` | `apps/web` | Next.js | http://localhost:3000 | [README](apps/web/README.md) |
 | `@cv-jobs-compatibility/components` | `libs/ui/components` | shadcn component library | — | [README](libs/ui/components/README.md) |
+| `@cv-jobs-compatibility/types` | `libs/shared/types` | Shared API and domain types | — | [README](libs/shared/types/README.md) |
 
-Ports, environment variables, database setup and per-package commands live in those READMEs.
+Ports, environment variables, database setup and per-package commands live in those READMEs. Architecture, trade-offs and product decisions live in [DECISIONS.md](DECISIONS.md).
 
 ## Prerequisites
 
@@ -50,8 +51,9 @@ The API listens on port `4000` and the web app on port `3000`. The API refuses t
 | `pnpm dev:api` | Start the NestJS API (watch) |
 | `pnpm dev:web` | Start the Next.js app (watch) |
 | `pnpm start:web` | Serve the production web build |
+| `pnpm psql` | Open a `psql` shell in the Postgres container |
 
-These are the only scripts in the root `package.json`; database and migration scripts live in `apps/api`.
+`pnpm psql` delegates to the API package's `db:psql`. The rest of the database and migration scripts live in `apps/api` — see [Database](apps/api/README.md#database) in its README.
 
 ## Working in the workspace
 

@@ -1,7 +1,10 @@
 autoInstallPeers: true
 allowBuilds:
+  # Native module: downloads a prebuilt binary, or compiles one if none matches.
+  argon2: true
   esbuild: true
   nx: true
 packages:
   - "apps/*"
   - "libs/ui/*"
+  - "libs/shared/*"

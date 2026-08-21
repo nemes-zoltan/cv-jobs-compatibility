@@ -1,3 +1,4 @@
+import type { AppInfoResponse } from '@cv-jobs-compatibility/types'
 import { Controller, Get } from '@nestjs/common'
 import { AppService } from './app.service'
 
@@ -6,7 +7,7 @@ export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get()
-  getData() {
+  getData(): AppInfoResponse {
     return this.appService.getData()
   }
 }

@@ -1,5 +1,6 @@
 import { PoolConfig } from 'pg'
 import { resolveDatabaseUrl } from './database-url'
+import { requireEnv, requireIntEnv } from './env'
 
 /**
  * Configuration read straight off `process.env`.
@@ -29,4 +30,24 @@ export abstract class BaseConfigService {
 
   /** Whether Drizzle echoes every statement it runs. */
   abstract readonly databaseLogging: boolean
+
+  /**
+   * Signing key for both token types. Required everywhere: a key that lives in
+   * the source is a key an attacker already has, so there is no default to fall
+   * back to.
+   */
+  readonly jwtSecret = requireEnv('JWT_SECRET')
+
+  /** Seconds an access token stays valid. */
+  readonly accessTokenTtl = requireIntEnv('ACCESS_TOKEN_TTL')
+
+  /**
+   * Seconds a refresh token stays valid, and therefore how long a session can
+   * survive without the user signing in again. Not extended on use: a session
+   * ends a fixed interval after it started rather than sliding forward forever.
+   */
+  readonly refreshTokenTtl = requireIntEnv('REFRESH_TOKEN_TTL')
+
+  /** Whether auth cookies carry the `Secure` flag. */
+  abstract readonly cookieSecure: boolean
 }

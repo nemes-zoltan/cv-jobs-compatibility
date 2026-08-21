@@ -2,6 +2,10 @@
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
+    // These components run in a browser and touch the DOM directly (focus
+    // management, `closest`), which the workspace-wide `es2022` lib does not
+    // describe.
+    "lib": ["es2022", "dom", "dom.iterable"],
     "types": [
       "node",
       "@nx/react/typings/cssmodule.d.ts",

@@ -17,4 +17,8 @@ export class ProductionConfigService extends BaseConfigService {
     : { rejectUnauthorized: false }
 
   readonly databaseLogging = false
+
+  /** Deployments terminate TLS at the load balancer; nothing here is served
+   * over plain HTTP. */
+  readonly cookieSecure = true
 }

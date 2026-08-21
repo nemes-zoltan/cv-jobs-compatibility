@@ -9,4 +9,7 @@ export class DevelopmentConfigService extends BaseConfigService {
 
   /** Echo the SQL Drizzle generates while developing. */
   readonly databaseLogging = true
+
+  /** A `Secure` cookie is dropped on a plain-HTTP localhost. */
+  readonly cookieSecure = false
 }

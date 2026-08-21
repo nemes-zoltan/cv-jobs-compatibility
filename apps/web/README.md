@@ -63,12 +63,3 @@ pnpm start:web
 ```
 
 `start` expects a successful `build` first.
-
-## Layout
-
-```text
-apps/web/
-├── src/app/          # App Router
-├── next.config.js
-└── package.json
-```

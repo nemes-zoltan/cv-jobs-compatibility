@@ -62,6 +62,15 @@ module.exports = {
       compiler: 'tsc',
       main: './src/main.ts',
       tsConfig: './tsconfig.app.json',
+      /**
+       * `argon2` loads a compiled `.node` binding by looking for a `prebuilds`
+       * directory next to its own source. Bundling it rewrites that lookup to
+       * the output directory, where no such directory exists, and the module
+       * throws on load. Leaving it external keeps the plain `require('argon2')`
+       * so it resolves from node_modules at runtime - which is what the
+       * `prune-lockfile` and `copy-workspace-modules` targets exist to provide.
+       */
+      externalDependencies: ['argon2'],
       assets: ["./src/assets"],
       optimization: false,
       outputHashing: 'none',
