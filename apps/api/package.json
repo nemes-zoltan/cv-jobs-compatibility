@@ -3,12 +3,9 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "db:up": "docker compose -f ../../docker-compose.yml up -d --wait postgres",
-    "db:down": "docker compose -f ../../docker-compose.yml down",
-    "db:reset": "docker compose -f ../../docker-compose.yml down -v && pnpm run db:up",
-    "db:logs": "docker compose -f ../../docker-compose.yml logs -f postgres",
     "db:psql": "docker compose -f ../../docker-compose.yml exec postgres sh -c 'psql -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\"'",
     "db:generate": "drizzle-kit generate",
+    "db:wipe": "node scripts/wipe.mjs",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio"
   },
@@ -28,6 +25,47 @@
             "env": {
               "NODE_ENV": "development"
             }
+          }
+        }
+      },
+      "build-worker": {
+        "executor": "nx:run-commands",
+        "// outputs": "The webpack plugin only infers targets from webpack.config.js, so this target has no inferred metadata. `serve-worker` reads outputs[0] to find the bundle - without it, @nx/js:node falls back to a path that does not exist.",
+        "outputs": [
+          "{projectRoot}/dist-worker"
+        ],
+        "options": {
+          "command": "webpack-cli build --config webpack.worker.config.js",
+          "env": {
+            "NODE_ENV": "production"
+          },
+          "cwd": "apps/api"
+        },
+        "configurations": {
+          "development": {
+            "env": {
+              "NODE_ENV": "development"
+            }
+          }
+        }
+      },
+      "serve-worker": {
+        "continuous": true,
+        "executor": "@nx/js:node",
+        "defaultConfiguration": "development",
+        "dependsOn": [
+          "build-worker"
+        ],
+        "options": {
+          "buildTarget": "@cv-jobs-compatibility/api:build-worker",
+          "runBuildTargetDependencies": false
+        },
+        "configurations": {
+          "development": {
+            "buildTarget": "@cv-jobs-compatibility/api:build-worker:development"
+          },
+          "production": {
+            "buildTarget": "@cv-jobs-compatibility/api:build-worker:production"
           }
         }
       },
@@ -93,7 +131,12 @@
     }
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1116.0",
+    "@aws-sdk/s3-request-presigner": "^3.1116.0",
+    "@cv-jobs-compatibility/constants": "workspace:*",
+    "@cv-jobs-compatibility/prompt-schemas": "workspace:*",
     "@cv-jobs-compatibility/types": "workspace:*",
+    "@google/genai": "^2.18.0",
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0",
     "@nestjs/jwt": "^11.0.2",
@@ -103,10 +146,13 @@
     "class-validator": "^0.15.1",
     "cookie-parser": "^1.4.7",
     "drizzle-orm": "^0.45.2",
+    "mammoth": "^1.12.1",
     "pg": "^8.23.0",
+    "pg-boss": "^12.27.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.0",
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "unpdf": "^1.8.1"
   },
   "devDependencies": {
     "@nestjs/testing": "^11.0.0",

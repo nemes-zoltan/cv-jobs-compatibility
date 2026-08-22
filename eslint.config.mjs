@@ -8,6 +8,7 @@ export default [
     {
         ignores: [
             "**/dist",
+            "**/dist-worker",
             "**/out-tsc"
         ]
     },

@@ -8,6 +8,20 @@
       "when": 1787339792017,
       "tag": "0000_tidy_whiplash",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1787426065385,
+      "tag": "0001_kind_franklin_storm",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787426362905,
+      "tag": "0002_pgboss_schema",
+      "breakpoints": true
     }
   ]
 }

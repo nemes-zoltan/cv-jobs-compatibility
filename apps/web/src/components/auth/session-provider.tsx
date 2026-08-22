@@ -30,6 +30,14 @@ import { getMe, logout } from '@/lib/auth-api'
 
 interface Session {
   user: MeResponse
+  /**
+   * Re-reads the account.
+   *
+   * Needed because parts of the user change without a request making them
+   * change: `hasResume` flips when a worker finishes, and the page that was
+   * watching has to be able to pick that up before it routes on it.
+   */
+  refresh: () => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -91,6 +99,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   }, [router, attempt])
 
+  const refresh = useCallback(async () => {
+    setUser(await getMe())
+  }, [])
+
   const signOut = useCallback(async () => {
     // Unlike the check above, a failure here is not worth stranding someone on
     // a page they asked to leave. If the API was unreachable the cookies
@@ -131,5 +143,5 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     )
   }
 
-  return <SessionContext.Provider value={{ user, signOut }}>{children}</SessionContext.Provider>
+  return <SessionContext.Provider value={{ user, refresh, signOut }}>{children}</SessionContext.Provider>
 }

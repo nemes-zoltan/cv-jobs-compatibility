@@ -1,4 +1,4 @@
-import { SESSION_COOKIE } from '@cv-jobs-compatibility/types'
+import { SESSION_COOKIE } from '@cv-jobs-compatibility/constants'
 import type { CookieOptions, Response } from 'express'
 import { BaseConfigService } from '../config/config.service'
 

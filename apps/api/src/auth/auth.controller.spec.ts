@@ -46,7 +46,12 @@ const storedUser = async (password: string): Promise<UserRow> => ({
 })
 
 describe('AuthController', () => {
-  const users = { findByEmail: jest.fn(), findById: jest.fn(), create: jest.fn() }
+  const users = {
+    findByEmail: jest.fn(),
+    findById: jest.fn(),
+    create: jest.fn(),
+    hasResume: jest.fn().mockResolvedValue(false),
+  }
   const jwt = new JwtService({ secret: JWT_SECRET })
 
   const createController = async (config = testConfig()): Promise<AuthController> => {
@@ -84,6 +89,8 @@ describe('AuthController', () => {
         name: 'Ada',
         // Serialised at the boundary: `UserModel.createdAt` is an ISO string.
         createdAt: '2026-01-01T00:00:00.000Z',
+        // A new account cannot have been through the pipeline yet.
+        hasResume: false,
       })
       expect(res.cookie).toHaveBeenCalledTimes(3)
       expect(res.cookie.mock.calls.map(([name]) => name)).toEqual([

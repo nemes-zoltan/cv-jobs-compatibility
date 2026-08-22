@@ -1,5 +1,5 @@
 {
-  "name": "@cv-jobs-compatibility/types",
+  "name": "@cv-jobs-compatibility/constants",
   "version": "0.0.1",
   "private": true,
   "main": "./src/index.ts",

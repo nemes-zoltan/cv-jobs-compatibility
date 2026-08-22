@@ -13,12 +13,16 @@ describe('ConfigModule', () => {
    * `"undefined"`, which is what a plain spread would leave behind.
    */
   const envWith = (env: NodeJS.ProcessEnv): NodeJS.ProcessEnv => {
-    // The auth settings have no defaults in code, so every case supplies them
-    // unless it is testing that very rule.
+    // The auth and storage settings have no defaults in code, so every case
+    // supplies them unless it is testing that very rule.
     const required = {
       JWT_SECRET: 'test-secret',
       ACCESS_TOKEN_TTL: '60',
       REFRESH_TOKEN_TTL: '604800',
+      S3_BUCKET: 'test-bucket',
+      UPLOAD_URL_TTL: '300',
+      S3_ACCESS_KEY_ID: 'test-key-id',
+      S3_SECRET_ACCESS_KEY: 'test-secret-key',
     }
     const merged: NodeJS.ProcessEnv = { ...required, ...originalEnv, ...env }
     for (const [key, value] of Object.entries(env)) {
@@ -116,6 +120,59 @@ describe('ConfigModule', () => {
     it('marks cookies Secure only where traffic is served over TLS', async () => {
       await expect(configFor({ NODE_ENV: undefined })).resolves.toMatchObject({ cookieSecure: false })
       await expect(configFor({ NODE_ENV: 'production' })).resolves.toMatchObject({ cookieSecure: true })
+    })
+  })
+
+  describe('storage settings', () => {
+    it('points development at the MinIO container with path-style addressing', async () => {
+      // Passed here rather than left to the defaults: `envWith` lets the real
+      // environment win, and `apps/api/.env` sets these.
+      const config = await configFor({
+        NODE_ENV: undefined,
+        S3_ENDPOINT: 'http://localhost:9000',
+        S3_ACCESS_KEY_ID: 'test-key-id',
+        S3_SECRET_ACCESS_KEY: 'test-secret-key',
+      })
+
+      expect(config.s3Endpoint).toBe('http://localhost:9000')
+      expect(config.s3ForcePathStyle).toBe(true)
+      expect(config.s3Credentials).toEqual({
+        accessKeyId: 'test-key-id',
+        secretAccessKey: 'test-secret-key',
+      })
+    })
+
+    /**
+     * The one that matters for deployment. Leaving both unset is what makes the
+     * SDK derive the real endpoint and reach for the task role, so a static key
+     * pair never has to exist in a task definition.
+     */
+    it('leaves the endpoint and credentials to the SDK in production', async () => {
+      const config = await configFor({ NODE_ENV: 'production' })
+
+      expect(config.s3Endpoint).toBeUndefined()
+      expect(config.s3Credentials).toBeUndefined()
+      expect(config.s3ForcePathStyle).toBe(false)
+    })
+
+    it('refuses to start without a bucket or an upload lifetime', async () => {
+      await expect(configFor({ S3_BUCKET: undefined })).rejects.toThrow('S3_BUCKET')
+      await expect(configFor({ UPLOAD_URL_TTL: undefined })).rejects.toThrow('UPLOAD_URL_TTL')
+    })
+
+    /** Production has no static credentials to miss; development does. */
+    it('refuses to start development without MinIO credentials', async () => {
+      await expect(configFor({ NODE_ENV: undefined, S3_ACCESS_KEY_ID: undefined })).rejects.toThrow(
+        'S3_ACCESS_KEY_ID',
+      )
+      await expect(
+        configFor({ NODE_ENV: 'production', S3_ACCESS_KEY_ID: undefined }),
+      ).resolves.toMatchObject({ s3Credentials: undefined })
+    })
+
+    it('defaults the signing region rather than requiring one', async () => {
+      await expect(configFor({ S3_REGION: undefined })).resolves.toMatchObject({ s3Region: 'us-east-1' })
+      await expect(configFor({ S3_REGION: 'eu-west-1' })).resolves.toMatchObject({ s3Region: 'eu-west-1' })
     })
   })
 })

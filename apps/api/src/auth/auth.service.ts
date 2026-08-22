@@ -58,7 +58,8 @@ export class AuthService {
     const passwordHash = await argon2.hash(dto.password, { type: argon2.argon2id })
     const user = await this.users.create({ email: dto.email, name: dto.name, passwordHash })
 
-    return { user: toUserModel(user), tokens: await this.issueTokens(user.id) }
+    // A brand new account cannot have a CV yet.
+    return { user: toUserModel(user, false), tokens: await this.issueTokens(user.id) }
   }
 
   async login(dto: LoginRequest): Promise<AuthResult> {
@@ -76,7 +77,10 @@ export class AuthService {
       throw new UnauthorizedException(INVALID_CREDENTIALS)
     }
 
-    return { user: toUserModel(user), tokens: await this.issueTokens(user.id) }
+    return {
+      user: toUserModel(user, await this.users.hasResume(user.id)),
+      tokens: await this.issueTokens(user.id),
+    }
   }
 
   /**

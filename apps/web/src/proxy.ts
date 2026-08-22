@@ -1,4 +1,4 @@
-import { SESSION_COOKIE } from '@cv-jobs-compatibility/types'
+import { SESSION_COOKIE } from '@cv-jobs-compatibility/constants'
 import { NextResponse, type NextRequest } from 'next/server'
 
 /**

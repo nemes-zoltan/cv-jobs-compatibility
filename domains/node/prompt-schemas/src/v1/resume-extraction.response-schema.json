@@ -1,0 +1,255 @@
+{
+  "type": "object",
+  "properties": {
+    "valid": {
+      "type": "boolean"
+    },
+    "rejectionReason": {
+      "nullable": true,
+      "type": "string"
+    },
+    "resume": {
+      "nullable": true,
+      "type": "object",
+      "properties": {
+        "fullName": {
+          "nullable": true,
+          "type": "string"
+        },
+        "email": {
+          "nullable": true,
+          "type": "string"
+        },
+        "phone": {
+          "nullable": true,
+          "type": "string"
+        },
+        "location": {
+          "nullable": true,
+          "type": "string"
+        },
+        "headline": {
+          "nullable": true,
+          "type": "string"
+        },
+        "summary": {
+          "nullable": true,
+          "type": "string"
+        },
+        "yearsExperienceTotal": {
+          "nullable": true,
+          "type": "number"
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "nullable": true,
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "label",
+              "url"
+            ]
+          }
+        },
+        "experiences": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "company": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "location": {
+                "nullable": true,
+                "type": "string"
+              },
+              "startDateRaw": {
+                "nullable": true,
+                "type": "string"
+              },
+              "endDateRaw": {
+                "nullable": true,
+                "type": "string"
+              },
+              "isCurrent": {
+                "type": "boolean"
+              },
+              "summary": {
+                "nullable": true,
+                "type": "string"
+              },
+              "highlights": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "company",
+              "title",
+              "location",
+              "startDateRaw",
+              "endDateRaw",
+              "isCurrent",
+              "summary",
+              "highlights"
+            ]
+          }
+        },
+        "education": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "institution": {
+                "type": "string"
+              },
+              "degree": {
+                "nullable": true,
+                "type": "string"
+              },
+              "field": {
+                "nullable": true,
+                "type": "string"
+              },
+              "startDateRaw": {
+                "nullable": true,
+                "type": "string"
+              },
+              "endDateRaw": {
+                "nullable": true,
+                "type": "string"
+              },
+              "grade": {
+                "nullable": true,
+                "type": "string"
+              }
+            },
+            "required": [
+              "institution",
+              "degree",
+              "field",
+              "startDateRaw",
+              "endDateRaw",
+              "grade"
+            ]
+          }
+        },
+        "skills": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "category": {
+                "type": "string",
+                "enum": [
+                  "language",
+                  "framework",
+                  "tool",
+                  "platform",
+                  "database",
+                  "soft",
+                  "domain",
+                  "other"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "category"
+            ]
+          }
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "nullable": true,
+                "type": "string"
+              },
+              "technologies": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "url": {
+                "nullable": true,
+                "type": "string"
+              },
+              "startDateRaw": {
+                "nullable": true,
+                "type": "string"
+              },
+              "endDateRaw": {
+                "nullable": true,
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "description",
+              "technologies",
+              "url",
+              "startDateRaw",
+              "endDateRaw"
+            ]
+          }
+        },
+        "certifications": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "languages": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "fullName",
+        "email",
+        "phone",
+        "location",
+        "headline",
+        "summary",
+        "yearsExperienceTotal",
+        "links",
+        "experiences",
+        "education",
+        "skills",
+        "projects",
+        "certifications",
+        "languages"
+      ]
+    }
+  },
+  "required": [
+    "valid",
+    "rejectionReason",
+    "resume"
+  ]
+}

@@ -5,7 +5,7 @@ Shared TypeScript contracts for the workspace — the API and its clients compil
 - **Package:** `@cv-jobs-compatibility/types`
 - **Contents:** `src/models.ts` (domain shapes, `*Model`), `src/api.ts` (per-endpoint `*Request` / `*Response`)
 
-Types only, no runtime code — every import of this package is erased at compile time.
+Types only, no runtime code — every import of this package is erased at compile time. Shared values that survive compilation live in `@cv-jobs-compatibility/constants`.
 
 ## Prerequisites
 

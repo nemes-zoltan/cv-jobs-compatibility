@@ -107,7 +107,7 @@ export class AuthController {
     // A valid token for an account that has since been deleted.
     if (!user) throw new UnauthorizedException('Account no longer exists')
 
-    return toUserModel(user)
+    return toUserModel(user, await this.usersService.hasResume(user.id))
   }
 
   /** The three cookies a signed-in browser holds. Register and login differ in

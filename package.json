@@ -3,8 +3,9 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "dev": "nx run-many -t serve -t dev --projects=@cv-jobs-compatibility/api,@cv-jobs-compatibility/web --output-style=stream",
+    "dev": "nx run-many -t serve -t serve-worker -t dev --projects=@cv-jobs-compatibility/api,@cv-jobs-compatibility/web --output-style=stream",
     "dev:api": "nx serve @cv-jobs-compatibility/api --output-style=stream-without-prefixes",
+    "dev:worker": "nx serve-worker @cv-jobs-compatibility/api --output-style=stream-without-prefixes",
     "dev:web": "nx dev @cv-jobs-compatibility/web --output-style=stream-without-prefixes",
     "start:web": "nx start @cv-jobs-compatibility/web --output-style=stream-without-prefixes",
     "psql": "pnpm --filter @cv-jobs-compatibility/api run db:psql"

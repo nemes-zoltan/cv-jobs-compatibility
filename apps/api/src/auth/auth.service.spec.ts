@@ -25,6 +25,7 @@ describe('AuthService', () => {
   const users = {
     findByEmail: jest.fn(),
     findById: jest.fn(),
+    hasResume: jest.fn().mockResolvedValue(false),
     create: jest.fn(),
   }
 

@@ -13,7 +13,13 @@
       "path": "./libs/ui/components"
     },
     {
-      "path": "./libs/shared/types"
+      "path": "./domains/node/prompt-schemas"
+    },
+    {
+      "path": "./domains/shared/constants"
+    },
+    {
+      "path": "./domains/shared/types"
     }
   ]
 }

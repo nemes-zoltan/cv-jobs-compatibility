@@ -7,4 +7,5 @@ allowBuilds:
 packages:
   - "apps/*"
   - "libs/ui/*"
-  - "libs/shared/*"
+  - "domains/node/*"
+  - "domains/shared/*"

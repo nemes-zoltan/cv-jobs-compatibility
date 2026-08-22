@@ -9,7 +9,9 @@ Nx monorepo with a NestJS API and a Next.js web app.
 | `@cv-jobs-compatibility/api` | `apps/api` | NestJS, Drizzle, Postgres | http://localhost:4000/api | [README](apps/api/README.md) |
 | `@cv-jobs-compatibility/web` | `apps/web` | Next.js | http://localhost:3000 | [README](apps/web/README.md) |
 | `@cv-jobs-compatibility/components` | `libs/ui/components` | shadcn component library | — | [README](libs/ui/components/README.md) |
-| `@cv-jobs-compatibility/types` | `libs/shared/types` | Shared API and domain types | — | [README](libs/shared/types/README.md) |
+| `@cv-jobs-compatibility/types` | `domains/shared/types` | Shared API and domain types | — | [README](domains/shared/types/README.md) |
+| `@cv-jobs-compatibility/constants` | `domains/shared/constants` | Shared domain constants | — | [README](domains/shared/constants/README.md) |
+| `@cv-jobs-compatibility/prompt-schemas` | `domains/node/prompt-schemas` | Versioned LLM prompts and response schemas | — | [README](domains/node/prompt-schemas/README.md) |
 
 Ports, environment variables, database setup and per-package commands live in those READMEs. Architecture, trade-offs and product decisions live in [DECISIONS.md](DECISIONS.md).
 
@@ -17,7 +19,7 @@ Ports, environment variables, database setup and per-package commands live in th
 
 - Node.js 22+
 - [pnpm](https://pnpm.io/installation) 9+
-- Docker (for the Postgres container)
+- Docker (for the Postgres and MinIO containers)
 
 ## Setup
 
@@ -25,7 +27,8 @@ Ports, environment variables, database setup and per-package commands live in th
 pnpm install
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
-pnpm --filter @cv-jobs-compatibility/api run db:up    # start Postgres
+docker compose up -d                                  # Postgres and MinIO
+pnpm --filter @cv-jobs-compatibility/api run db:migrate
 ```
 
 ## Quick start
@@ -43,17 +46,18 @@ pnpm dev:api
 pnpm dev:web
 ```
 
-The API listens on port `4000` and the web app on port `3000`. The API refuses to start when Postgres is unreachable, so bring the database up first — see [Database](apps/api/README.md#database) in the API README.
+The API listens on port `4000` and the web app on port `3000`. The API refuses to start when Postgres is unreachable, so run `docker compose up -d` first — see [Containers](apps/api/README.md#containers) in the API README.
 
 | Command | Description |
 | --- | --- |
 | `pnpm dev` | Start API and web together |
 | `pnpm dev:api` | Start the NestJS API (watch) |
+| `pnpm dev:worker` | Start the queue worker (watch) |
 | `pnpm dev:web` | Start the Next.js app (watch) |
 | `pnpm start:web` | Serve the production web build |
 | `pnpm psql` | Open a `psql` shell in the Postgres container |
 
-`pnpm psql` delegates to the API package's `db:psql`. The rest of the database and migration scripts live in `apps/api` — see [Database](apps/api/README.md#database) in its README.
+Containers are started with `docker compose` directly. Migration scripts live in `apps/api` — see its [README](apps/api/README.md#migrations).
 
 ## Working in the workspace
 
@@ -65,7 +69,9 @@ pnpm exec nx g @nx/react:library libs/<name>     # React package
 pnpm exec nx g @nx/nest:app apps/<name>          # NestJS app
 ```
 
-Add the directory to `packages:` in `pnpm-workspace.yaml` if it falls outside the existing globs (`apps/*`, `libs/ui/*`), then run `pnpm install` to link it.
+Add the directory to `packages:` in `pnpm-workspace.yaml` if it falls outside the existing globs (`apps/*`, `libs/ui/*`, `domains/node/*`, `domains/shared/*`), then run `pnpm install` to link it.
+
+`libs/` is for generic building blocks; `domains/` is for packages that only make sense to this product. Under `domains/`, `shared/` runs anywhere and `node/` is server-only.
 
 ### Adding a dependency
 

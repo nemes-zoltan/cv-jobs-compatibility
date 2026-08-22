@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@cv-jobs-compatibility/components": "workspace:*",
+    "@cv-jobs-compatibility/constants": "workspace:*",
     "@cv-jobs-compatibility/types": "workspace:*",
     "@hookform/resolvers": "^5.2.2",
     "class-variance-authority": "^0.7.1",

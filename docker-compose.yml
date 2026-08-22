@@ -1,5 +1,6 @@
-# Local development database. Deployed environments use managed Postgres, so
-# these credentials never leave a developer machine and are spelled out here.
+# Local development backing services. Deployed environments use managed
+# Postgres and real S3, so these credentials never leave a developer machine and
+# are spelled out here.
 name: cv-jobs-compatibility
 
 services:
@@ -24,6 +25,44 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+
+  # Stands in for S3. Same API, so only the configuration differs in production.
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ':9001'
+    environment:
+      MINIO_ROOT_USER: cvjobs
+      MINIO_ROOT_PASSWORD: cvjobs_dev_password
+      # The browser PUTs straight here, so this mirrors the bucket CORS policy a
+      # deployment needs.
+      MINIO_API_CORS_ALLOW_ORIGIN: http://localhost:3000
+    ports:
+      # 9000 is the S3 API, 9001 the console.
+      - '127.0.0.1:9000:9000'
+      - '127.0.0.1:9001:9001'
+    volumes:
+      # Contents are MinIO's own format, not readable files - use the console.
+      - ./tmp/minio:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # Creates the bucket and exits. Idempotent, so it runs on every `up`.
+  minio-init:
+    image: minio/mc:latest
+    restart: 'no'
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 cvjobs cvjobs_dev_password &&
+      mc mb --ignore-existing local/cvjobs-resumes
+      "
 
 volumes:
   postgres-data:

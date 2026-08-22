@@ -11,11 +11,12 @@ import { UserRow } from '../database/schema/users'
  * `createdAt` becomes an ISO string here because that is what survives JSON -
  * doing it at the boundary keeps `UserModel` honest about what a client holds.
  */
-export function toUserModel(user: UserRow): UserModel {
+export function toUserModel(user: UserRow, hasResume: boolean): UserModel {
   return {
     id: user.id,
     email: user.email,
     name: user.name,
     createdAt: user.createdAt.toISOString(),
+    hasResume,
   }
 }

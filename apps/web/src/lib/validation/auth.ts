@@ -7,7 +7,7 @@ import { z } from 'zod'
  * so the API can trust them - it validates every request regardless, and stays
  * the authority. Each schema names the DTO it shadows; keep them in step.
  *
- * The schemas live here rather than in `libs/shared/types` on purpose. The API
+ * The schemas live here rather than in `domains/shared/types` on purpose. The API
  * validates with class-validator decorators on its DTOs, and a zod schema in
  * the shared package would either sit unused or become a second, competing
  * source of truth. What is shared is the request type; only the rules are

@@ -2,6 +2,7 @@ import { ConflictException, Inject, Injectable } from '@nestjs/common'
 import { eq } from 'drizzle-orm'
 import { DRIZZLE } from '../database/database.constants'
 import type { Database } from '../database/database.module'
+import { resumes } from '../database/schema/resumes'
 import { UserRow, users } from '../database/schema/users'
 
 /** Postgres `unique_violation`. */
@@ -33,6 +34,22 @@ export class UsersService {
    */
   static normalizeEmail(email: string): string {
     return email.trim().toLowerCase()
+  }
+
+  /**
+   * Whether this account has a finished CV.
+   *
+   * A row in `resumes` exists only when the whole pipeline succeeded, so its
+   * presence is the question - no flag to keep in step with it.
+   */
+  async hasResume(userId: string): Promise<boolean> {
+    const [row] = await this.db
+      .select({ id: resumes.id })
+      .from(resumes)
+      .where(eq(resumes.userId, userId))
+      .limit(1)
+
+    return row !== undefined
   }
 
   async findByEmail(email: string): Promise<UserRow | undefined> {

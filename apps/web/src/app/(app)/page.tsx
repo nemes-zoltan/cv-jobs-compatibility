@@ -1,89 +1,110 @@
-import { FileUpIcon, MessagesSquareIcon, ScanSearchIcon, TargetIcon } from 'lucide-react'
-import { Badge, Button, Card, CardContent } from '@cv-jobs-compatibility/components'
+'use client'
+
+import { useEffect } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { ArrowRightIcon, BriefcaseIcon, TargetIcon } from 'lucide-react'
+import { Button, Card, CardContent, Spinner } from '@cv-jobs-compatibility/components'
+import { useSession } from '@/components/auth/session-provider'
 import { Greeting } from '@/components/greeting'
+import { useMyResume } from '@/lib/use-my-resume'
 
 /**
- * The home screen, with nothing to show yet.
+ * The dashboard.
  *
- * Everything here is an empty state on purpose: there are no resumes to list
- * until that table exists. The upload control is visibly disabled rather than
- * hidden, so the page reads as unfinished rather than as broken.
+ * Reports what the account actually holds. The numbers that need job postings
+ * to mean anything are shown as not-yet rather than as zero - a "0 roles
+ * analysed" tile claims a feature exists and is performing badly, which is a
+ * worse lie than saying it is coming.
  */
+export default function DashboardPage() {
+  const router = useRouter()
+  const { user } = useSession()
+  const { resume, loading } = useMyResume()
 
-const CAPABILITIES = [
-  {
-    icon: TargetIcon,
-    title: 'Score every role',
-    description: 'Against your CV, not a keyword filter.',
-  },
-  {
-    icon: ScanSearchIcon,
-    title: 'See the gaps',
-    description: 'The ones that actually cost you the interview.',
-  },
-  {
-    icon: MessagesSquareIcon,
-    title: 'Ask follow-ups',
-    description: 'And get answers with citations.',
-  },
-]
+  useEffect(() => {
+    if (!user.hasResume) router.replace('/onboarding')
+  }, [user.hasResume, router])
 
-export default function Index() {
+  if (!user.hasResume) return null
+
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-6 py-12 md:px-10 md:py-16">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-10 md:px-10 md:py-14">
       <div className="flex flex-col gap-2">
         <Greeting />
         <p className="text-sm text-muted-foreground text-pretty">
-          Add a CV to start measuring it against the roles you are chasing.
+          Your CV is in. Roles get measured against it.
         </p>
       </div>
 
-      {/* `Card` draws itself with a ring and its own vertical padding; an empty
-          state wants a dashed outline and room to breathe instead. */}
-      <Card className="relative border border-dashed border-border bg-transparent py-0 ring-0">
-        {/* The same dotted field as the auth showcase, so the two halves of the
-            product look like one. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(var(--color-border)_1px,transparent_1px)] [background-size:18px_18px] [mask-image:radial-gradient(ellipse_at_50%_35%,black,transparent_70%)]"
-        />
+      {loading ? (
+        <div className="flex min-h-24 items-center justify-center">
+          <Spinner className="size-5 text-muted-foreground" />
+        </div>
+      ) : (
+        resume && (
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Stat label="Roles on your CV" value={resume.experiences.length} />
+            <Stat label="Skills extracted" value={resume.skills.length} />
+            <Stat
+              label="Years of experience"
+              value={
+                resume.yearsExperienceTotal === null
+                  ? '—'
+                  : Number(resume.yearsExperienceTotal.toFixed(1))
+              }
+            />
+          </div>
+        )
+      )}
 
-        <CardContent className="relative flex flex-col items-center gap-5 px-6 py-14 text-center">
-          <span className="flex size-12 items-center justify-center rounded-xl border border-border bg-background">
-            <FileUpIcon className="size-5 text-muted-foreground" />
-          </span>
-
-          <div className="flex max-w-sm flex-col gap-1.5">
-            <h2 className="font-heading text-lg font-semibold tracking-tight">
-              No CV yet
-            </h2>
-            <p className="text-sm leading-relaxed text-muted-foreground text-pretty">
-              Upload one and every role you add gets scored against it.
-            </p>
+      <Card>
+        <CardContent className="flex flex-wrap items-center justify-between gap-4 px-6">
+          <div className="flex items-start gap-3">
+            <BriefcaseIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+            <div className="flex flex-col gap-1">
+              <h2 className="text-sm font-medium">
+                {resume?.fullName ?? 'Your CV'}
+                {resume?.headline && (
+                  <span className="font-normal text-muted-foreground"> · {resume.headline}</span>
+                )}
+              </h2>
+              <p className="text-sm text-muted-foreground text-pretty">
+                Everything we read out of your resume, in one place.
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Button disabled>Upload CV</Button>
-            <Badge variant="outline" className="bg-background">
-              Coming soon
-            </Badge>
-          </div>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/my-resume">
+              View my resume
+              <ArrowRightIcon />
+            </Link>
+          </Button>
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        {CAPABILITIES.map(({ icon: Icon, title, description }) => (
-          <Card key={title} className="bg-muted/40">
-            <CardContent className="flex flex-col gap-2 px-5">
-              <Icon className="size-4 text-muted-foreground" />
-              <h3 className="text-sm font-medium">{title}</h3>
-              <p className="text-sm leading-relaxed text-muted-foreground text-pretty">
-                {description}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <Card className="border border-dashed border-border bg-transparent ring-0">
+        <CardContent className="flex flex-col items-center gap-2 px-6 py-12 text-center">
+          <TargetIcon className="size-5 text-muted-foreground" />
+          <h2 className="font-heading text-lg font-semibold tracking-tight">No roles yet</h2>
+          <p className="max-w-sm text-sm leading-relaxed text-muted-foreground text-pretty">
+            Adding job postings is next. Each one gets scored against your CV, with the gaps worth
+            closing called out.
+          </p>
+        </CardContent>
+      </Card>
     </div>
+  )
+}
+
+function Stat({ label, value }: { label: string; value: number | string }) {
+  return (
+    <Card className="bg-muted/40">
+      <CardContent className="flex flex-col gap-1 px-5">
+        <span className="font-heading text-2xl font-semibold tabular-nums">{value}</span>
+        <span className="text-sm text-muted-foreground">{label}</span>
+      </CardContent>
+    </Card>
   )
 }

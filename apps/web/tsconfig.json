@@ -58,10 +58,13 @@
   ],
   "references": [
     {
-      "path": "../../libs/ui/components"
+      "path": "../../domains/shared/types"
     },
     {
-      "path": "../../libs/shared/types"
+      "path": "../../domains/shared/constants"
+    },
+    {
+      "path": "../../libs/ui/components"
     }
   ]
 }

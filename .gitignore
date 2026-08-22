@@ -43,6 +43,15 @@ testem.log
 .DS_Store
 Thumbs.db
 
+# Local MinIO data, bind-mounted by docker-compose.yml. The directory is tracked
+# so a fresh clone has somewhere to mount before the container starts; nothing
+# inside it ever is. These four lines are order-dependent - `tmp` above excludes
+# the directory, and git will not look inside an excluded directory, so it has
+# to be re-included before anything in it can be.
+!/tmp/
+/tmp/*
+!/tmp/.gitkeep
+
 .nx/cache
 .nx/workspace-data
 .nx/migrate-runs
@@ -53,3 +62,4 @@ Thumbs.db
 .next
 out
 test-output
+dist-worker

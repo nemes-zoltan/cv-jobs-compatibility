@@ -29,7 +29,13 @@
   ],
   "references": [
     {
-      "path": "../../libs/shared/types/tsconfig.lib.json"
+      "path": "../../domains/shared/types/tsconfig.lib.json"
+    },
+    {
+      "path": "../../domains/node/prompt-schemas/tsconfig.lib.json"
+    },
+    {
+      "path": "../../domains/shared/constants/tsconfig.lib.json"
     }
   ]
 }

@@ -12,20 +12,22 @@ const row: UserRow = {
 
 describe('toUserModel', () => {
   it('emits exactly the fields UserModel declares', () => {
-    expect(toUserModel(row)).toEqual({
+    expect(toUserModel(row, true)).toEqual({
       id: '0f8fad5b-d9cb-469f-a165-70867728950e',
       email: 'ada@example.com',
       name: 'Ada Lovelace',
       createdAt: '2026-01-01T09:30:00.000Z',
+      // Not on the row: it is asked of the resumes table and passed in.
+      hasResume: true,
     })
   })
 
   it('never carries the password hash, whatever the row holds', () => {
-    expect(JSON.stringify(toUserModel(row))).not.toContain('argon2')
-    expect(toUserModel(row)).not.toHaveProperty('passwordHash')
+    expect(JSON.stringify(toUserModel(row, false))).not.toContain('argon2')
+    expect(toUserModel(row, false)).not.toHaveProperty('passwordHash')
   })
 
   it('converts timestamps to ISO strings, because that is what survives JSON', () => {
-    expect(typeof toUserModel(row).createdAt).toBe('string')
+    expect(typeof toUserModel(row, false).createdAt).toBe('string')
   })
 })
