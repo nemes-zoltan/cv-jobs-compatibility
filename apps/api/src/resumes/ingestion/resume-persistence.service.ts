@@ -11,7 +11,8 @@ import {
   resumeSkills,
   resumes,
 } from '../../database/schema'
-import { dedupeSkills, parseResumeDate, toYearsOfExperience } from './resume-normalisation'
+import { dedupeSkills } from '../../skills/skill-normalisation'
+import { parseResumeDate, toYearsOfExperience } from './resume-normalisation'
 
 /**
  * Step three: a validated reading becomes rows.

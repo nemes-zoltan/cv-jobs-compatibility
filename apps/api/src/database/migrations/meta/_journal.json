@@ -22,6 +22,27 @@
       "when": 1787426362905,
       "tag": "0002_pgboss_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787500212252,
+      "tag": "0003_wooden_songbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1787503627077,
+      "tag": "0004_next_madame_web",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1787506162992,
+      "tag": "0005_curious_manta",
+      "breakpoints": true
     }
   ]
 }

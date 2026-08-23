@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { TerminalIngestionError } from './ingestion-errors'
+import { TerminalIngestionError } from '../../pipeline/terminal-ingestion-error'
 import { IngestionStateService } from './ingestion-state.service'
 import { ResumeExtractionService } from './resume-extraction.service'
 import { ResumePersistenceService } from './resume-persistence.service'

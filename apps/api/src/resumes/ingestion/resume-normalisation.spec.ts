@@ -1,4 +1,4 @@
-import { dedupeSkills, parseResumeDate, toYearsOfExperience } from './resume-normalisation'
+import { parseResumeDate, toYearsOfExperience } from './resume-normalisation'
 
 describe('parseResumeDate', () => {
   it.each([
@@ -30,31 +30,6 @@ describe('parseResumeDate', () => {
     ['13/2019'],
   ])('gives up on %p rather than guessing', (raw) => {
     expect(parseResumeDate(raw)).toBeNull()
-  })
-})
-
-describe('dedupeSkills', () => {
-  it('keeps the first mention when a CV lists a skill twice', () => {
-    const result = dedupeSkills([
-      { name: 'React', category: 'framework' },
-      { name: 'PostgreSQL', category: 'database' },
-      { name: 'react', category: 'tool' },
-      { name: 'React.', category: 'language' },
-    ])
-
-    expect(result).toEqual([
-      { name: 'React', category: 'framework', normalizedName: 'react' },
-      { name: 'PostgreSQL', category: 'database', normalizedName: 'postgresql' },
-    ])
-  })
-
-  it('does not collapse skills that merely start alike', () => {
-    const result = dedupeSkills([
-      { name: 'React', category: 'framework' },
-      { name: 'React Native', category: 'framework' },
-    ])
-
-    expect(result).toHaveLength(2)
   })
 })
 

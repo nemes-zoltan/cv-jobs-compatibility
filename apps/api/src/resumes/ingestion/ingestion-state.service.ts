@@ -39,7 +39,10 @@ export class IngestionStateService {
       )
       .returning()
 
-    if (claimed) return claimed
+    if (claimed) {
+      this.logger.log(`Reading CV ${ingestionId} (${claimed.filename})`)
+      return claimed
+    }
 
     // Nothing matched: either the ingestion finished already, or the row is
     // gone - wiped in development, or its owner deleted it. Neither is
@@ -68,6 +71,8 @@ export class IngestionStateService {
   }
 
   markReady(ingestionId: string): Promise<unknown> {
+    this.logger.log(`CV ${ingestionId} is ready`)
+
     return this.finish(ingestionId, 'ready')
   }
 

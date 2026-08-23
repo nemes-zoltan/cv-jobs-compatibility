@@ -12,7 +12,7 @@ import { DRIZZLE } from '../../database/database.constants'
 import type { Database } from '../../database/database.module'
 import { type ResumeExtractionRow, type ResumeIngestionRow, resumeExtractions } from '../../database/schema'
 import { MalformedModelResponseError, GeminiService } from '../../gemini/gemini.service'
-import { TerminalIngestionError } from './ingestion-errors'
+import { TerminalIngestionError } from '../../pipeline/terminal-ingestion-error'
 
 /**
  * How much of a document is sent to the model.
@@ -51,7 +51,7 @@ export class ResumeExtractionService {
       return reusable
     }
 
-    const response = await this.ask(text)
+    const response = await this.ask(ingestion.id, text)
     const parsed = this.parse(response.data)
 
     const [row] = await this.db
@@ -71,26 +71,41 @@ export class ResumeExtractionService {
       .returning()
 
     this.logger.log(
-      `Extraction ${row.id}: valid=${parsed.valid} ` +
-        `tokens=${response.inputTokens ?? '?'}/${response.outputTokens ?? '?'} ` +
-        `in ${response.latencyMs}ms`,
+      parsed.valid && parsed.resume
+        ? `Extraction ${row.id}: valid, ${parsed.resume.experiences.length} roles, ` +
+            `${parsed.resume.education.length} education, ${parsed.resume.skills.length} skills, ` +
+            `${parsed.resume.projects.length} projects`
+        : `Extraction ${row.id}: not a CV (${parsed.rejectionReason})`,
     )
 
     return { row, response: parsed }
   }
 
-  private async ask(text: string) {
+  private async ask(ingestionId: string, text: string) {
     const truncated = text.slice(0, MAX_PROMPT_CHARACTERS)
     if (truncated.length < text.length) {
       this.logger.warn(`Truncated document from ${text.length} to ${MAX_PROMPT_CHARACTERS} characters`)
     }
 
+    this.logger.log(`Asking the model about CV ${ingestionId} (${truncated.length} characters)`)
+
     try {
-      return await this.gemini.generateJson({
+      const response = await this.gemini.generateJson({
         systemPrompt: RESUME_EXTRACTION_SYSTEM_PROMPT,
         prompt: buildResumeExtractionPrompt(truncated),
         responseSchema: RESUME_EXTRACTION_RESPONSE_SCHEMA,
       })
+
+      this.logger.log(
+        `Model answered for CV ${ingestionId} in ${response.latencyMs}ms ` +
+          `(${response.inputTokens ?? '?'} in, ${response.outputTokens ?? '?'} out)`,
+      )
+      // The whole answer, at debug, because the useful thing while a prompt is
+      // being tuned is what actually came back rather than a count of it. It is
+      // on the extraction row too, but nobody reaches for psql mid-run.
+      this.logger.debug(JSON.stringify(response.data, null, 2))
+
+      return response
     } catch (error) {
       // Unparseable output is not worth three more attempts at the same
       // document; anything else - a rate limit, a timeout, a 503 - is exactly

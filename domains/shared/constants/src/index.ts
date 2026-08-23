@@ -11,5 +11,7 @@
  */
 
 export * from './cookies'
+export * from './jobs'
+export * from './matching'
 export * from './resumes'
 export * from './skills'

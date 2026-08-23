@@ -3,6 +3,7 @@ import { PgBoss } from 'pg-boss'
 import { GeminiModule } from '../../gemini/gemini.module'
 import { PG_BOSS, QUEUES, type ResumeIngestionJob } from '../../queue/queue.constants'
 import { StorageModule } from '../../storage/storage.module'
+import { TelemetryService } from '../../telemetry/telemetry.service'
 import { IngestionStateService } from './ingestion-state.service'
 import { IngestionService } from './ingestion.service'
 import { ResumeExtractionService } from './resume-extraction.service'
@@ -31,6 +32,7 @@ export class IngestionModule implements OnModuleInit {
   constructor(
     @Inject(PG_BOSS) private readonly boss: PgBoss,
     private readonly ingestion: IngestionService,
+    private readonly telemetry: TelemetryService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -52,7 +54,16 @@ export class IngestionModule implements OnModuleInit {
           // later attempt could survive is left to propagate. Failures that
           // would repeat identically are recorded on the ingestion and returned
           // normally.
-          await this.ingestion.ingest(data.ingestionId)
+          // A queue handler has no incoming request, so nothing would create a
+          // root span for it. This makes one, continuing the trace the job was
+          // enqueued in - so pasting an advert and everything the workers do
+          // about it minutes later is one trace rather than four.
+          await this.telemetry.withLinkedSpan(
+            'resume-ingestion',
+            data,
+            () => this.ingestion.ingest(data.ingestionId),
+            { 'messaging.system': 'pg-boss', 'messaging.destination.name': 'resume-ingestion' },
+          )
         } catch (error) {
           // pg-boss is about to stop retrying, and nothing else would ever move
           // this row off the status the failed attempt left it on.

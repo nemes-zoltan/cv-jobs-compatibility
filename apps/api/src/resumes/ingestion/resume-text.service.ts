@@ -22,6 +22,8 @@ export class ResumeTextService {
   ) {}
 
   async run(ingestion: ResumeIngestionRow): Promise<string> {
+    this.logger.log(`Fetching ${ingestion.storageKey} (${ingestion.sizeBytes} bytes)`)
+
     const file = await this.storage.getObject(ingestion.storageKey)
     const { content, pageCount } = await this.extraction.extract(file, ingestion.contentType)
 

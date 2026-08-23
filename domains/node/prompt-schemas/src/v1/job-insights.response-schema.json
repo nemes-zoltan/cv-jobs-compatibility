@@ -1,0 +1,172 @@
+{
+  "type": "object",
+  "properties": {
+    "company": {
+      "type": "object",
+      "properties": {
+        "known": {
+          "type": "boolean"
+        },
+        "whatTheyDo": {
+          "nullable": true,
+          "type": "string"
+        },
+        "sector": {
+          "nullable": true,
+          "type": "string"
+        },
+        "sizeEstimate": {
+          "nullable": true,
+          "type": "string"
+        }
+      },
+      "required": [
+        "known",
+        "whatTheyDo",
+        "sector",
+        "sizeEstimate"
+      ]
+    },
+    "flags": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "polarity": {
+            "type": "string",
+            "enum": [
+              "red",
+              "green",
+              "neutral"
+            ]
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "compensation",
+              "culture",
+              "expectations",
+              "role_clarity",
+              "process",
+              "stability",
+              "growth",
+              "interviewing",
+              "management",
+              "other"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "evidence": {
+            "nullable": true,
+            "type": "string"
+          },
+          "source": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "posting",
+                  "web"
+                ]
+              },
+              "label": {
+                "nullable": true,
+                "type": "string"
+              },
+              "url": {
+                "nullable": true,
+                "type": "string"
+              },
+              "date": {
+                "nullable": true,
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "label",
+              "url",
+              "date"
+            ]
+          }
+        },
+        "required": [
+          "polarity",
+          "category",
+          "text",
+          "evidence",
+          "source"
+        ]
+      }
+    },
+    "interviewBasis": {
+      "type": "string",
+      "enum": [
+        "stated_in_posting",
+        "inferred_from_role_type"
+      ]
+    },
+    "interviewStages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "stage": {
+            "type": "string"
+          },
+          "whatTheyAssess": {
+            "type": "string"
+          },
+          "typicalDuration": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "stage",
+          "whatTheyAssess",
+          "typicalDuration"
+        ]
+      }
+    },
+    "interviewQuestions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string"
+          },
+          "whatTheyAreProbing": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "behavioral",
+              "technical",
+              "system_design",
+              "domain",
+              "culture"
+            ]
+          }
+        },
+        "required": [
+          "question",
+          "whatTheyAreProbing",
+          "category"
+        ]
+      }
+    }
+  },
+  "required": [
+    "company",
+    "flags",
+    "interviewBasis",
+    "interviewStages",
+    "interviewQuestions"
+  ]
+}

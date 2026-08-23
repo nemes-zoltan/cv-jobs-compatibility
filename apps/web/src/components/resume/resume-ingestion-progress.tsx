@@ -76,10 +76,17 @@ export function ResumeIngestionProgress({ step }: ResumeIngestionProgressProps) 
       <p
         role="status"
         aria-live="polite"
-        className="flex items-center justify-center gap-2 text-sm text-muted-foreground"
+        // The description wraps at this width, and a centred row would then
+        // float the spinner between the two lines. It aligns to the first line
+        // instead, nudged down to sit optically on it.
+        className="flex items-start justify-center gap-2 text-sm text-muted-foreground"
       >
-        {step < STEPS.length && <Spinner className="size-4 shrink-0" />}
-        {step < STEPS.length ? current.description : 'Done.'}
+        {step < STEPS.length && <Spinner className="mt-0.5 size-4 shrink-0" />}
+        {/* A real element rather than a bare text node, so the wrapped lines
+            balance instead of leaving one word stranded on the second. */}
+        <span className="text-balance">
+          {step < STEPS.length ? current.description : 'Done.'}
+        </span>
       </p>
     </div>
   )

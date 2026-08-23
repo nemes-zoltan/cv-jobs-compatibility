@@ -1,5 +1,3 @@
-import type { SkillCategory } from '@cv-jobs-compatibility/constants'
-
 /**
  * Turning what a CV says into what the tables hold.
  *
@@ -60,48 +58,6 @@ function toDate(year: number, month: number, day: number): string | null {
   if (year < 1900 || year > 2100 || month < 1 || month > 12 || day < 1 || day > 31) return null
 
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-}
-
-/**
- * The comparable form of a skill name.
- *
- * Only case, spacing and trailing punctuation are removed. "React" and "React"
- * written differently should meet here; "React" and "React Native" must not -
- * anything cleverer belongs to the semantic matching, not to a string function.
- */
-export function normalizeSkillName(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[.,;:!?]+$/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
-export interface ExtractedSkill {
-  name: string
-  category: SkillCategory
-}
-
-/**
- * One row per skill per resume.
- *
- * The prompt asks the model not to repeat itself and it usually obliges, but a
- * CV listing React under both "Frontend" and "Frameworks" is exactly the case
- * where it will. The unique index would abort the whole transaction, taking the
- * resume with it, so duplicates are dropped here - first mention wins, since
- * that is the one the document led with.
- */
-export function dedupeSkills(skills: ExtractedSkill[]): (ExtractedSkill & { normalizedName: string })[] {
-  const seen = new Map<string, ExtractedSkill & { normalizedName: string }>()
-
-  for (const skill of skills) {
-    const normalizedName = normalizeSkillName(skill.name)
-    if (!normalizedName || seen.has(normalizedName)) continue
-
-    seen.set(normalizedName, { ...skill, normalizedName })
-  }
-
-  return [...seen.values()]
 }
 
 /**

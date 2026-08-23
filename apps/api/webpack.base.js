@@ -19,9 +19,11 @@ const OPTIONAL_NEST_INTEGRATIONS = [
  * These can never be part of a CommonJS bundle: `file-type` is ESM-only and
  * `FileTypeValidator` pulls it in through a runtime dynamic import anyway, and
  * `pg-native` is an optional native addon that `pg` probes for and lives
- * without. Ignoring them leaves both runtime paths intact.
+ * without. `bufferutil` and `utf-8-validate` are the same story for `ws`, which
+ * arrives with OpenTelemetry's auto-instrumentations - both are speed-ups it
+ * probes for behind a try/catch. Ignoring them leaves every runtime path intact.
  */
-const NEVER_BUNDLED = ['file-type', 'pg-native']
+const NEVER_BUNDLED = ['file-type', 'pg-native', 'bufferutil', 'utf-8-validate']
 
 const isInstalled = (packageName) => {
   try {
@@ -57,6 +59,11 @@ module.exports = function createConfig({ main, outputPath }) {
     // they do not ship. Nothing we can fix from here, and it says nothing about
     // this app's own sources.
     /Failed to parse source map/,
+    // OpenTelemetry's auto-instrumentations reach for every library they know
+    // how to patch, most of which this app does not have, and patch modules
+    // through a computed require that webpack cannot follow. Both are expected.
+    /Can't resolve '@opentelemetry\/winston-transport'/,
+    /Critical dependency: require function is used/,
   ],
   plugins: [
     new IgnorePlugin({

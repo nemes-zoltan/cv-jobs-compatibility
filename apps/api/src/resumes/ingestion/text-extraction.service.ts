@@ -2,7 +2,7 @@ import { type ResumeContentType, isResumeContentType } from '@cv-jobs-compatibil
 import { Injectable } from '@nestjs/common'
 import mammoth from 'mammoth'
 import { extractText, getDocumentProxy } from 'unpdf'
-import { TerminalIngestionError } from './ingestion-errors'
+import { TerminalIngestionError } from '../../pipeline/terminal-ingestion-error'
 
 export interface ExtractedText {
   content: string

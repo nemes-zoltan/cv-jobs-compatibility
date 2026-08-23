@@ -1,12 +1,30 @@
 import { GoogleGenAI } from '@google/genai'
 import { Injectable, Logger } from '@nestjs/common'
+import type { Span } from '@opentelemetry/api'
 import { BaseConfigService } from '../config/config.service'
+import { TelemetryService } from '../telemetry/telemetry.service'
 
 export interface StructuredRequest {
   systemPrompt: string
   prompt: string
   /** JSON Schema in the OpenAPI subset the model accepts. */
   responseSchema: Record<string, unknown>
+  /**
+   * Lets the model search the web before answering.
+   *
+   * Only worth turning on where the answer depends on facts outside the
+   * prompt - it costs a round trip through search and a good deal of latency,
+   * and it changes what the model is allowed to invent, which is the point.
+   *
+   * Gemini 3 permits this alongside a response schema; earlier models did not,
+   * so a downgrade of `GEMINI_MODEL` breaks it rather than degrading quietly.
+   */
+  searchTheWeb?: boolean
+  /**
+   * Extraction wants the same answer twice from the same document. Anything
+   * that reasons or searches wants a little room, and gets it explicitly.
+   */
+  temperature?: number
 }
 
 export interface StructuredResponse {
@@ -16,6 +34,8 @@ export interface StructuredResponse {
   inputTokens: number | null
   outputTokens: number | null
   latencyMs: number
+  /** The queries the model actually ran. Empty unless it searched. */
+  searchQueries: string[]
 }
 
 /** Raised when the model answers with something that is not JSON at all. */
@@ -39,13 +59,36 @@ export class GeminiService {
   private readonly logger = new Logger(GeminiService.name)
   private client?: GoogleGenAI
 
-  constructor(private readonly config: BaseConfigService) {}
+  constructor(
+    private readonly config: BaseConfigService,
+    private readonly telemetry: TelemetryService,
+  ) {}
 
-  async generateJson({
-    systemPrompt,
-    prompt,
-    responseSchema,
-  }: StructuredRequest): Promise<StructuredResponse> {
+  generateJson(request: StructuredRequest): Promise<StructuredResponse> {
+    /**
+     * Every model call is a span, because these are the slowest and most
+     * expensive things the system does and the only ones with a per-request
+     * price. Tokens land as attributes so cost and latency can be read per
+     * model and per call type without parsing a log line.
+     */
+    return this.telemetry.withSpan(
+      `gemini ${this.config.geminiModel}`,
+      (span) => this.call(request, span),
+      {
+        'gen_ai.system': 'gcp.gemini',
+        'gen_ai.request.model': this.config.geminiModel,
+        'gen_ai.request.temperature': request.temperature ?? 0,
+        // Not a standard attribute, but the distinction that matters most here:
+        // a grounded call is a different price and a different failure mode.
+        'gen_ai.request.search_grounded': request.searchTheWeb ?? false,
+      },
+    )
+  }
+
+  private async call(
+    { systemPrompt, prompt, responseSchema, searchTheWeb = false, temperature = 0 }: StructuredRequest,
+    span: Span,
+  ): Promise<StructuredResponse> {
     const model = this.config.geminiModel
     const startedAt = Date.now()
 
@@ -56,15 +99,27 @@ export class GeminiService {
         systemInstruction: systemPrompt,
         responseMimeType: 'application/json',
         responseSchema,
-        // Extraction, not writing. The same document should give the same
-        // answer twice.
-        temperature: 0,
+        tools: searchTheWeb ? [{ googleSearch: {} }] : undefined,
+        temperature,
         abortSignal: AbortSignal.timeout(this.config.geminiTimeoutMs),
       },
     })
 
     const latencyMs = Date.now() - startedAt
     const text = response.text
+
+    // What it actually looked up. The citation chunks come back empty when a
+    // schema is in play, which is why callers that need sources ask for them
+    // inside the schema instead - but the queries still arrive, and they are
+    // the difference between "it searched" and "it says it searched".
+    const searchQueries = response.candidates?.[0]?.groundingMetadata?.webSearchQueries ?? []
+    if (searchTheWeb) {
+      this.logger.log(
+        searchQueries.length > 0
+          ? `Searched: ${searchQueries.join(' | ')}`
+          : 'Search was enabled but the model ran no queries',
+      )
+    }
 
     if (!text) throw new MalformedModelResponseError('')
 
@@ -78,12 +133,19 @@ export class GeminiService {
       throw new MalformedModelResponseError(text)
     }
 
+    span.setAttributes({
+      'gen_ai.usage.input_tokens': response.usageMetadata?.promptTokenCount ?? 0,
+      'gen_ai.usage.output_tokens': response.usageMetadata?.candidatesTokenCount ?? 0,
+      'gen_ai.search_queries': searchQueries.length,
+    })
+
     return {
       data,
       model,
       inputTokens: response.usageMetadata?.promptTokenCount ?? null,
       outputTokens: response.usageMetadata?.candidatesTokenCount ?? null,
       latencyMs,
+      searchQueries,
     }
   }
 

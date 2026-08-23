@@ -92,4 +92,18 @@ export abstract class BaseConfigService {
 
   /** A CV is a couple of pages; anything slower than this is a stuck request. */
   readonly geminiTimeoutMs = Number(process.env.GEMINI_TIMEOUT_MS ?? 60_000)
+
+  /**
+   * Whether the model may search the web.
+   *
+   * Off by default because it is not ours to switch on: `googleSearch` is
+   * refused outright on a project without billing - a 429 in under a fifth of a
+   * second, before any work happens - so a default of true would mean every
+   * briefing failing on a fresh checkout.
+   *
+   * What it changes is not just a flag on the request. The briefing asks for a
+   * different prompt with it off, because a prompt that says "you have Google
+   * Search" to a model that does not is a prompt inviting invented sources.
+   */
+  readonly geminiSearchEnabled = process.env.GEMINI_SEARCH_ENABLED === 'true'
 }

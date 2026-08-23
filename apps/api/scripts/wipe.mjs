@@ -1,6 +1,7 @@
 /**
- * Clears everything an upload leaves behind: the ingestion and whatever hangs
- * off it, its queued jobs, and the stored files themselves.
+ * Clears everything the two pipelines leave behind: uploaded CVs and whatever
+ * hangs off them, job postings and everything read out of them, the queued jobs
+ * for both, and the stored files themselves.
  *
  * Both halves are needed - deleting rows alone leaves objects in the bucket
  * that nothing references, which is exactly the mess this is meant to avoid
@@ -41,9 +42,16 @@ async function wipeDatabase() {
   const pool = new Pool({ connectionString: databaseUrl, ssl: false })
 
   try {
-    // CASCADE reaches resume_texts, resume_extractions, resumes and its
-    // children through their foreign keys.
-    await pool.query('truncate table resume_ingestions cascade')
+    // Two roots, truncated together so neither ordering nor the matches that
+    // hang off both has to be thought about. CASCADE reaches resume_texts,
+    // resume_extractions and resumes with its children from the first; and
+    // job_texts, job_extractions, job_requirements, job_skills, job_insights,
+    // job_flags, saved_jobs and job_matches from the second.
+    //
+    // `saved_jobs` going with them is the point: a posting belongs to nobody,
+    // so wiping postings has to wipe the links or every account keeps a list
+    // of rows that are gone.
+    await pool.query('truncate table resume_ingestions, jobs cascade')
 
     // pg-boss partitions its job table by queue name; truncating the parent
     // clears every partition. The counters on pgboss.queue go stale for up to
@@ -51,7 +59,7 @@ async function wipeDatabase() {
     // its next monitor cycle.
     await pool.query('truncate table pgboss.job cascade')
 
-    console.log('Cleared resume_ingestions and pgboss.job')
+    console.log('Cleared resume_ingestions, jobs and pgboss.job')
   } finally {
     await pool.end()
   }

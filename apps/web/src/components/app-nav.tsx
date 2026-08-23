@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { FileTextIcon } from 'lucide-react'
+import { BriefcaseIcon, FileTextIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSession } from '@/components/auth/session-provider'
 
@@ -16,7 +16,10 @@ import { useSession } from '@/components/auth/session-provider'
  * and offering a link to an empty page is worse than offering none.
  */
 
-const LINKS = [{ href: '/my-resume', label: 'My Resume', icon: FileTextIcon }]
+const LINKS = [
+  { href: '/my-resume', label: 'My Resume', icon: FileTextIcon },
+  { href: '/jobs', label: 'Roles', icon: BriefcaseIcon },
+]
 
 export function AppNav() {
   const pathname = usePathname()
@@ -27,7 +30,9 @@ export function AppNav() {
   return (
     <nav className="flex items-center gap-5" aria-label="Main">
       {LINKS.map(({ href, label, icon: Icon }) => {
-        const active = pathname === href
+        // Anything below the section counts as being in it, so adding a
+        // posting or reading one keeps "Roles" lit rather than lighting nothing.
+        const active = pathname === href || pathname.startsWith(`${href}/`)
 
         return (
           <Link

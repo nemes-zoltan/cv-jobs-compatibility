@@ -1,0 +1,265 @@
+{
+  "type": "object",
+  "properties": {
+    "valid": {
+      "type": "boolean"
+    },
+    "rejectionReason": {
+      "nullable": true,
+      "type": "string"
+    },
+    "job": {
+      "nullable": true,
+      "type": "object",
+      "properties": {
+        "title": {
+          "nullable": true,
+          "type": "string"
+        },
+        "company": {
+          "nullable": true,
+          "type": "string"
+        },
+        "locations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "workMode": {
+          "nullable": true,
+          "type": "string",
+          "enum": [
+            "onsite",
+            "hybrid",
+            "remote"
+          ]
+        },
+        "employmentType": {
+          "nullable": true,
+          "type": "string",
+          "enum": [
+            "full_time",
+            "part_time",
+            "contract",
+            "internship",
+            "temporary"
+          ]
+        },
+        "seniority": {
+          "nullable": true,
+          "type": "string",
+          "enum": [
+            "intern",
+            "junior",
+            "mid",
+            "senior",
+            "staff",
+            "principal",
+            "lead",
+            "manager",
+            "director"
+          ]
+        },
+        "yearsExperienceMin": {
+          "nullable": true,
+          "type": "number"
+        },
+        "yearsExperienceMax": {
+          "nullable": true,
+          "type": "number"
+        },
+        "salary": {
+          "nullable": true,
+          "type": "object",
+          "properties": {
+            "min": {
+              "nullable": true,
+              "type": "number"
+            },
+            "max": {
+              "nullable": true,
+              "type": "number"
+            },
+            "currency": {
+              "nullable": true,
+              "type": "string"
+            },
+            "period": {
+              "nullable": true,
+              "type": "string",
+              "enum": [
+                "hour",
+                "day",
+                "month",
+                "year"
+              ]
+            }
+          },
+          "required": [
+            "min",
+            "max",
+            "currency",
+            "period"
+          ]
+        },
+        "industry": {
+          "nullable": true,
+          "type": "string"
+        },
+        "teamContext": {
+          "nullable": true,
+          "type": "string"
+        },
+        "summary": {
+          "nullable": true,
+          "type": "string"
+        },
+        "education": {
+          "nullable": true,
+          "type": "object",
+          "properties": {
+            "level": {
+              "type": "string",
+              "enum": [
+                "high_school",
+                "associate",
+                "bachelor",
+                "master",
+                "doctorate"
+              ]
+            },
+            "field": {
+              "nullable": true,
+              "type": "string"
+            },
+            "importance": {
+              "type": "string",
+              "enum": [
+                "required",
+                "preferred"
+              ]
+            }
+          },
+          "required": [
+            "level",
+            "field",
+            "importance"
+          ]
+        },
+        "responsibilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requirements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string"
+              },
+              "originalText": {
+                "nullable": true,
+                "type": "string"
+              },
+              "importance": {
+                "type": "string",
+                "enum": [
+                  "required",
+                  "preferred"
+                ]
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "skill",
+                  "experience",
+                  "education",
+                  "certification",
+                  "language",
+                  "eligibility",
+                  "other"
+                ]
+              }
+            },
+            "required": [
+              "text",
+              "originalText",
+              "importance",
+              "kind"
+            ]
+          }
+        },
+        "skills": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "category": {
+                "type": "string",
+                "enum": [
+                  "language",
+                  "framework",
+                  "tool",
+                  "platform",
+                  "database",
+                  "soft",
+                  "domain",
+                  "other"
+                ]
+              },
+              "importance": {
+                "type": "string",
+                "enum": [
+                  "required",
+                  "preferred"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "category",
+              "importance"
+            ]
+          }
+        },
+        "benefits": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "title",
+        "company",
+        "locations",
+        "workMode",
+        "employmentType",
+        "seniority",
+        "yearsExperienceMin",
+        "yearsExperienceMax",
+        "salary",
+        "industry",
+        "teamContext",
+        "summary",
+        "education",
+        "responsibilities",
+        "requirements",
+        "skills",
+        "benefits"
+      ]
+    }
+  },
+  "required": [
+    "valid",
+    "rejectionReason",
+    "job"
+  ]
+}

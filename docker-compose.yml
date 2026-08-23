@@ -64,5 +64,31 @@ services:
       mc mb --ignore-existing local/cvjobs-resumes
       "
 
+  # Traces, locally. One container instead of a collector, Tempo and Grafana
+  # wired together by hand - it is throwaway infrastructure and assembling it
+  # properly would teach nobody anything.
+  #
+  # The applications only ever speak OTLP, so this is interchangeable with an
+  # ADOT collector translating for X-Ray in a deployment. Nothing in the code
+  # names either.
+  otel:
+    image: grafana/otel-lgtm:latest
+    restart: unless-stopped
+    ports:
+      # Grafana. Explore -> Tempo -> Search to find a trace.
+      - '127.0.0.1:3001:3000'
+      # OTLP, HTTP then gRPC. The API and worker use HTTP.
+      - '127.0.0.1:4318:4318'
+      - '127.0.0.1:4317:4317'
+    environment:
+      # Anonymous access, because this holds nothing and a login prompt on a
+      # throwaway dashboard is friction for no benefit.
+      GF_AUTH_ANONYMOUS_ENABLED: 'true'
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: 'true'
+    volumes:
+      - otel-data:/data
+
 volumes:
   postgres-data:
+  otel-data:

@@ -1,3 +1,7 @@
+// Must be first, for the same reason as in main.ts - and it matters more here:
+// a worker's traces are the long ones.
+import './instrumentation'
+
 import { Logger } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
 import { WorkerModule } from './worker/worker.module'

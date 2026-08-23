@@ -9,7 +9,15 @@
  * tokens appear nowhere in these types by design.
  */
 
-import type { ResumeIngestionModel, ResumeModel, UserModel } from './models'
+import type {
+  JobMatchModel,
+  JobMatchSummaryModel,
+  JobModel,
+  JobSummaryModel,
+  ResumeIngestionModel,
+  ResumeModel,
+  UserModel,
+} from './models'
 
 /** `POST /api/auth/register` → `201` */
 export interface RegisterRequest {
@@ -112,6 +120,90 @@ export type DeleteResumeIngestionResponse = void
  * page that shows it needs all of it.
  */
 export type MyResumeResponse = ResumeModel
+
+/**
+ * `POST /api/jobs` → `201`
+ *
+ * Registers a pasted advert and puts it on the caller's list. The text is
+ * hashed, so pasting one somebody else has already added links to the posting
+ * that exists rather than parsing it a second time.
+ *
+ * `409` while the caller already has one being processed: parsing costs a model
+ * call, and letting somebody queue ten at once is letting them spend ten.
+ */
+export interface CreateJobRequest {
+  /** The advert, pasted. Between `MIN_JOB_TEXT_CHARS` and `MAX_JOB_TEXT_CHARS`. */
+  text: string
+  /** Optional, and only ever rendered as a link back. Never fetched. */
+  sourceUrl?: string
+}
+
+export type CreateJobResponse = JobSummaryModel
+
+/**
+ * `GET /api/jobs?page=1&pageSize=12` → `200`
+ *
+ * The caller's list, newest addition first. Offset paging: the list is short,
+ * ordered by something stable, and a page number is what the UI wants to show.
+ */
+export interface JobListResponse {
+  items: JobSummaryModel[]
+  /** Across every page, so a client can render "page 2 of 4". */
+  total: number
+  page: number
+  pageSize: number
+}
+
+/** `GET /api/jobs/:id` → `200`, or `404` for a posting the caller has not saved. */
+export type JobResponse = JobModel
+
+/**
+ * `GET /api/jobs/pending` → `200`
+ *
+ * The posting still being processed, so the create page can resume watching it
+ * after a reload rather than offering a second one. `null` when there is none.
+ *
+ * Not bounded by age: one stranded by a worker that died is exactly what the
+ * page needs to see, so it can say so and offer to remove it.
+ */
+export type PendingJobResponse = JobSummaryModel | null
+
+/**
+ * `POST /api/jobs/:id/insights` → `200`
+ *
+ * Asks for the briefing again. The one manual way out of a briefing that ran
+ * out of retries - a rate-limited or out-of-quota model call fails in a way no
+ * amount of backoff fixes, so the way back is a person deciding to try again.
+ *
+ * `409` before the posting itself has parsed: there is nothing to brief yet.
+ */
+export type RetryJobInsightsResponse = JobModel
+
+/**
+ * `POST /api/jobs/:id/match` → `201`
+ *
+ * Scores the posting against the caller's CV. Deliberately a thing a person
+ * asks for rather than something that happens on its own: it is a model call
+ * per posting, and after a new CV every posting would need one at once.
+ *
+ * Returns the match queued; the page polls it. Asking again while one is in
+ * flight returns that one rather than starting a second. Asking again once it
+ * has finished re-runs it.
+ *
+ * `409` before the posting has been read and its briefing has settled.
+ */
+export type CreateJobMatchResponse = JobMatchSummaryModel
+
+/** `GET /api/jobs/:id/match` → `200`, or `404` when the posting has not been scored. */
+export type JobMatchResponse = JobMatchModel
+
+/**
+ * `DELETE /api/jobs/:id` → `204`
+ *
+ * Removes the posting from the caller's list and nothing else. The posting
+ * itself belongs to nobody and may be on someone else's.
+ */
+export type DeleteJobResponse = void
 
 /** `GET /api/health` → `200`, or `503` carrying the same shape when degraded. */
 export interface HealthResponse {

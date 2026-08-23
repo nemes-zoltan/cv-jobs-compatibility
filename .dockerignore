@@ -1,0 +1,36 @@
+# The build context is the repository root, so everything below would otherwise
+# be shipped to the daemon on every build - and some of it would end up in an
+# image.
+
+# Reinstalled inside the image, and a host's copy is the wrong platform anyway:
+# argon2 is a native module built against the machine that installed it.
+node_modules
+**/node_modules
+
+# Build output. The image builds its own; copying a stale one in is how a
+# container ends up serving yesterday's code.
+dist
+**/dist
+**/dist-worker
+**/.next
+tmp
+
+# Local caches. Large, machine-specific, and meaningless in a container.
+.nx
+.git
+**/.turbo
+
+# Secrets. The API's .env holds a Gemini key and database credentials, and
+# nothing in an image should ever have read them.
+**/.env
+**/.env.*
+!**/.env.example
+
+# Editor and OS noise.
+.vscode
+.idea
+**/.DS_Store
+
+# Documentation and local-only infrastructure.
+**/*.md
+docker-compose.yml

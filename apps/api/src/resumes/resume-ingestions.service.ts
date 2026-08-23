@@ -9,6 +9,7 @@ import type { Database } from '../database/database.module'
 import { type ResumeIngestionRow, resumeIngestions } from '../database/schema'
 import { PG_BOSS, QUEUES, RESUME_INGESTION_JOB_OPTIONS } from '../queue/queue.constants'
 import { StorageService } from '../storage/storage.service'
+import { TelemetryService } from '../telemetry/telemetry.service'
 import type { CreateResumeIngestionDto } from './dto/create-resume-ingestion.dto'
 import { toResumeIngestionModel } from './resume-ingestion.mapper'
 
@@ -23,6 +24,7 @@ export class ResumeIngestionsService {
     @Inject(DRIZZLE) private readonly db: Database,
     @Inject(PG_BOSS) private readonly boss: PgBoss,
     private readonly storage: StorageService,
+    private readonly telemetry: TelemetryService,
   ) {}
 
   /**
@@ -57,7 +59,7 @@ export class ResumeIngestionsService {
       const row = await this.db.transaction(async (tx) => {
         const jobId = await this.boss.send(
           QUEUES.resumeIngestion,
-          { ingestionId: id },
+          { ingestionId: id, ...this.telemetry.carrier() },
           { ...RESUME_INGESTION_JOB_OPTIONS, db: fromDrizzle(tx, sql) },
         )
 

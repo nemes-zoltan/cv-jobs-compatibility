@@ -7,5 +7,11 @@
  * extracted last month stay explicable.
  */
 
+export * from './job-extraction.prompt'
+export * from './job-extraction.schema'
+export * from './job-insights.prompt'
+export * from './job-insights.schema'
+export * from './job-match.prompt'
+export * from './job-match.schema'
 export * from './resume-extraction.prompt'
 export * from './resume-extraction.schema'

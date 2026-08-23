@@ -1,9 +1,29 @@
 autoInstallPeers: true
+# Which dependencies may run install scripts. Every one is a decision, which is
+# why the list is explicit rather than blanket-approved: outside CI pnpm only
+# warns about the rest, but `CI=true` - which is what a Docker build sets -
+# treats an unlisted package as fatal. So an image build fails on exactly the
+# packages a developer machine shrugs at.
 allowBuilds:
   # Native module: downloads a prebuilt binary, or compiles one if none matches.
   argon2: true
   esbuild: true
   nx: true
+  # Next's image optimisation. Without its binary the web server starts and
+  # then fails the first time it is asked for an image.
+  sharp: true
+  # Compiles this workspace's TypeScript during builds and tests.
+  '@swc/core': true
+  # OpenTelemetry's wire format for OTLP.
+  protobufjs: true
+  # Deliberately not built. All four are developer conveniences - file
+  # watching, a lint resolver, a stylesheet compiler nothing here uses, and a
+  # postinstall we have no need of - and none of them has to run for anything
+  # in an image to work. Listed rather than omitted so pnpm stops asking.
+  '@parcel/watcher': false
+  unrs-resolver: false
+  less: false
+  '@google/genai': false
 packages:
   - "apps/*"
   - "libs/ui/*"

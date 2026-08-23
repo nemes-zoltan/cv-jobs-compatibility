@@ -3,6 +3,10 @@
  * This is only a minimal backend to get started.
  */
 
+// Must be first: starts the OpenTelemetry SDK before any instrumented module
+// (http, express, pg) is required.
+import './instrumentation'
+
 import { Logger, ValidationPipe } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app/app.module'

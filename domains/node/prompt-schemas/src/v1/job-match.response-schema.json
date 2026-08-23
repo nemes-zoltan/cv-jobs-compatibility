@@ -1,0 +1,156 @@
+{
+  "type": "object",
+  "properties": {
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "number"
+          },
+          "stars": {
+            "type": "number"
+          },
+          "evidence": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "stars",
+          "evidence"
+        ]
+      }
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "number"
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "yes",
+              "partial",
+              "no"
+            ]
+          },
+          "gapType": {
+            "nullable": true,
+            "type": "string",
+            "enum": [
+              "quick_to_learn",
+              "needs_a_project",
+              "needs_years"
+            ]
+          },
+          "evidence": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "index",
+          "verdict",
+          "gapType",
+          "evidence"
+        ]
+      }
+    },
+    "essentials": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "check": {
+            "type": "string",
+            "enum": [
+              "work_authorisation",
+              "location",
+              "work_mode",
+              "employment_type"
+            ]
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "yes",
+              "unknown",
+              "no"
+            ]
+          },
+          "note": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "check",
+          "verdict",
+          "note"
+        ]
+      }
+    },
+    "recommendation": {
+      "type": "string",
+      "enum": [
+        "apply_now",
+        "tailor_first",
+        "close_gaps_first",
+        "skip"
+      ]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "strengths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "gaps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tailoredQuestions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string"
+          },
+          "motivatedBy": {
+            "type": "string"
+          },
+          "howToApproach": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "question",
+          "motivatedBy",
+          "howToApproach"
+        ]
+      }
+    }
+  },
+  "required": [
+    "requirements",
+    "skills",
+    "essentials",
+    "recommendation",
+    "summary",
+    "strengths",
+    "gaps",
+    "tailoredQuestions"
+  ]
+}
