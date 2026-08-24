@@ -49,6 +49,27 @@
           }
         }
       },
+      "build-migrate": {
+        "executor": "nx:run-commands",
+        "// outputs": "Same reason as build-worker: the webpack plugin only infers targets from webpack.config.js, so this one has no inferred metadata.",
+        "outputs": [
+          "{projectRoot}/dist-migrate"
+        ],
+        "options": {
+          "command": "webpack-cli build --config webpack.migrate.config.js",
+          "env": {
+            "NODE_ENV": "production"
+          },
+          "cwd": "apps/api"
+        },
+        "configurations": {
+          "development": {
+            "env": {
+              "NODE_ENV": "development"
+            }
+          }
+        }
+      },
       "serve-worker": {
         "continuous": true,
         "executor": "@nx/js:node",

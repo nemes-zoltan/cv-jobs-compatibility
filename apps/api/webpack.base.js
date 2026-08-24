@@ -37,11 +37,11 @@ const isInstalled = (packageName) => {
 const ignoredModules = [...OPTIONAL_NEST_INTEGRATIONS.filter((name) => !isInstalled(name)), ...NEVER_BUNDLED]
 
 /**
- * Shared by both entrypoints. The HTTP server and the queue worker are built
- * from the same sources into separate bundles, so one image can run either -
- * see DECISIONS.md.
+ * Shared by all three entrypoints. The HTTP server, the queue worker and the
+ * migration task are built from the same sources into separate bundles, so one
+ * image can run any of them - see DECISIONS.md.
  */
-module.exports = function createConfig({ main, outputPath }) {
+module.exports = function createConfig({ main, outputPath, assets = [] }) {
   return {
   output: {
     path: join(__dirname, outputPath),
@@ -84,7 +84,7 @@ module.exports = function createConfig({ main, outputPath }) {
        * `prune-lockfile` and `copy-workspace-modules` targets exist to provide.
        */
       externalDependencies: ['argon2'],
-      assets: ["./src/assets"],
+      assets: ["./src/assets", ...assets],
       optimization: false,
       outputHashing: 'none',
       generatePackageJson: false,

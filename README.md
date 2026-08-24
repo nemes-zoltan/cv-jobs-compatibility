@@ -13,7 +13,7 @@ Nx monorepo with a NestJS API and a Next.js web app.
 | `@cv-jobs-compatibility/constants` | `domains/shared/constants` | Shared domain constants | — | [README](domains/shared/constants/README.md) |
 | `@cv-jobs-compatibility/prompt-schemas` | `domains/node/prompt-schemas` | Versioned LLM prompts and response schemas | — | [README](domains/node/prompt-schemas/README.md) |
 
-Ports, environment variables, database setup and per-package commands live in those READMEs. Architecture, trade-offs and product decisions live in [DECISIONS.md](DECISIONS.md).
+Ports, environment variables, database setup and per-package commands live in those READMEs. Architecture, trade-offs and product decisions live in [DECISIONS.md](DECISIONS.md); the plan for running this on AWS is in [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Prerequisites
 
@@ -58,6 +58,25 @@ The API listens on port `4000` and the web app on port `3000`. The API refuses t
 | `pnpm psql` | Open a `psql` shell in the Postgres container |
 
 Containers are started with `docker compose` directly. Migration scripts live in `apps/api` — see its [README](apps/api/README.md#migrations).
+
+## Docker images
+
+Two images. Both build from the repository root, because each app depends on workspace packages outside its own directory:
+
+```bash
+docker build -f apps/api/Dockerfile -t cv-jobs-api .
+docker build -f apps/web/Dockerfile -t cv-jobs-web .
+```
+
+The API image runs three ways — HTTP server, queue worker, and a one-off migration task — from the same bundle:
+
+| Command | Runs |
+| --- | --- |
+| `node dist/main.js` | HTTP server (the image's default) |
+| `node dist-worker/main.js` | Queue worker |
+| `node dist-migrate/main.js` | Applies migrations, then exits |
+
+Full run commands, the variables each needs, and how to build from inside a package directory are in the [API README](apps/api/README.md#docker-image) and the [web README](apps/web/README.md#docker-image). The AWS shape these images are built for is in [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Working in the workspace
 

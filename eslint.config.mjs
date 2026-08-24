@@ -9,6 +9,7 @@ export default [
         ignores: [
             "**/dist",
             "**/dist-worker",
+            "**/dist-migrate",
             "**/out-tsc"
         ]
     },

@@ -65,7 +65,7 @@ pnpm exec nx serve @cv-jobs-compatibility/api   # same thing
 
 Rebuilds and restarts the Node process on change.
 
-This app has two entrypoints built from the same sources — `src/main.ts` (HTTP) and `src/worker.ts` (queue). `pnpm dev` starts both; run the worker alone with `pnpm dev:worker`. They build to `dist/` and `dist-worker/` respectively.
+This app has three entrypoints built from the same sources — `src/main.ts` (HTTP), `src/worker.ts` (queue) and `src/migrate.ts` (migrations, for containers only). `pnpm dev` starts the first two; run the worker alone with `pnpm dev:worker`. They build to `dist/`, `dist-worker/` and `dist-migrate/` respectively.
 
 `dist-worker/` is not a single file: unpdf loads PDF.js through a dynamic import, so webpack emits it as a lazy chunk (~1.7 MB) beside `main.js`. Deploying `main.js` alone fails on the first PDF upload and nowhere else.
 
@@ -100,7 +100,9 @@ pg-boss lives in its own `pgboss` schema, so `\dt` will not show it — use `\dt
 ### Build, test, lint
 
 ```bash
-pnpm exec nx build @cv-jobs-compatibility/api   # → apps/api/dist
+pnpm exec nx build @cv-jobs-compatibility/api           # → apps/api/dist
+pnpm exec nx build-worker @cv-jobs-compatibility/api    # → apps/api/dist-worker
+pnpm exec nx build-migrate @cv-jobs-compatibility/api   # → apps/api/dist-migrate
 pnpm exec nx test @cv-jobs-compatibility/api
 pnpm exec nx lint @cv-jobs-compatibility/api
 ```
@@ -119,6 +121,125 @@ Running the bundle outside Nx needs the variables exported first:
 set -a && . ./.env && set +a
 node dist/main.js
 ```
+
+### Docker image
+
+One image, three commands. The build context must be the repository root — this app depends on workspace packages that live outside `apps/api`.
+
+```bash
+# from the repository root
+docker build -f apps/api/Dockerfile -t cv-jobs-api .
+
+# from apps/api
+docker build -f Dockerfile -t cv-jobs-api ../..
+```
+
+| Command | Runs |
+| --- | --- |
+| `node dist/main.js` | HTTP server (the image's default) |
+| `node dist-worker/main.js` | Queue worker |
+| `node dist-migrate/main.js` | Applies migrations, then exits |
+
+Migrations in a container use `dist-migrate`, not `pnpm db:migrate` — drizzle-kit is a devDependency and is not in the image. `pnpm db:generate` is unchanged and stays a local tool.
+
+#### Running it locally
+
+Start the backing services first — `docker compose up -d` from the repository root.
+
+Join the container to the compose network so it can reach Postgres and MinIO by service name. `localhost` inside a container is the container itself, which is why a connection string pointing there fails with `ECONNREFUSED 127.0.0.1:5432`.
+
+Copy-paste as-is; nothing here needs replacing.
+
+```bash
+docker run --name cv-jobs-api \
+  --network cv-jobs-compatibility_default \
+  -p 4000:4000 \
+  -e NODE_ENV=development \
+  -e PORT=4000 \
+  -e WEB_ORIGIN=http://localhost:3000 \
+  -e DATABASE_URL=postgresql://cvjobs:cvjobs_dev_password@postgres:5432/cvjobs \
+  -e JWT_SECRET=local-development-secret-change-me \
+  -e ACCESS_TOKEN_TTL=60 \
+  -e REFRESH_TOKEN_TTL=604800 \
+  -e S3_BUCKET=cvjobs-resumes \
+  -e S3_REGION=us-east-1 \
+  -e S3_ENDPOINT=http://minio:9000 \
+  -e S3_ACCESS_KEY_ID=cvjobs \
+  -e S3_SECRET_ACCESS_KEY=cvjobs_dev_password \
+  -e UPLOAD_URL_TTL=300 \
+  cv-jobs-api
+```
+
+```bash
+curl http://localhost:4000/api/health
+# {"status":"ok","services":{"database":"up"}}
+```
+
+`NODE_ENV=development` is not optional here: `production` connects to Postgres with TLS, which the local container does not offer.
+
+The worker takes the same variables plus a Gemini key — the only value you have to supply:
+
+```bash
+docker run --name cv-jobs-worker \
+  --network cv-jobs-compatibility_default \
+  -e NODE_ENV=development \
+  -e DATABASE_URL=postgresql://cvjobs:cvjobs_dev_password@postgres:5432/cvjobs \
+  -e JWT_SECRET=local-development-secret-change-me \
+  -e ACCESS_TOKEN_TTL=60 \
+  -e REFRESH_TOKEN_TTL=604800 \
+  -e S3_BUCKET=cvjobs-resumes \
+  -e S3_REGION=us-east-1 \
+  -e S3_ENDPOINT=http://minio:9000 \
+  -e S3_ACCESS_KEY_ID=cvjobs \
+  -e S3_SECRET_ACCESS_KEY=cvjobs_dev_password \
+  -e UPLOAD_URL_TTL=300 \
+  -e GOOGLE_GEMINI_API_KEY=your-key-here \
+  cv-jobs-api node dist-worker/main.js
+```
+
+Migrations, on the same network:
+
+```bash
+docker run --rm --network cv-jobs-compatibility_default \
+  -e NODE_ENV=development \
+  -e DATABASE_URL=postgresql://cvjobs:cvjobs_dev_password@postgres:5432/cvjobs \
+  cv-jobs-api node dist-migrate/main.js
+```
+
+Add tracing to any of them with `-e OTEL_EXPORTER_OTLP_ENDPOINT=http://otel:4318` and `-e OTEL_SERVICE_NAME=cv-jobs-api` (or `cv-jobs-worker`).
+
+Stop them with `docker rm -f cv-jobs-api cv-jobs-worker`.
+
+##### One caveat: uploading a CV from the browser
+
+Presigned upload URLs are signed against `S3_ENDPOINT`, and the browser is handed the result — so it gets `http://minio:9000/...`, which only resolves inside the compose network. Everything else works; picking a CV fails.
+
+To fix it, make that hostname mean the same thing on both sides by adding one line to your hosts file:
+
+```
+127.0.0.1 minio
+```
+
+`/etc/hosts` on Linux and macOS, `C:\Windows\System32\drivers\etc\hosts` if the browser is on Windows. The container keeps resolving `minio` through Docker's DNS; the browser now resolves it to the published port.
+
+This does not arise in normal development, where the API runs on the host with `pnpm dev:api` and `S3_ENDPOINT` is `http://localhost:9000` for everyone.
+
+#### Deployed
+
+The same image and the same three commands. What changes is the environment:
+
+| Variable | Local | Deployed |
+| --- | --- | --- |
+| `NODE_ENV` | `development` | `production` — turns on TLS to Postgres and the production config |
+| `DATABASE_URL` | `…@postgres:5432/cvjobs` | the managed instance, or the discrete `POSTGRES_*` variables an RDS secret exposes |
+| `WEB_ORIGIN` | `http://localhost:3000` | the domain the browser loads the app from |
+| `JWT_SECRET` | anything | a long random string, from a secret store |
+| `S3_ENDPOINT` | `http://minio:9000` | **unset** — absent means AWS's own endpoint |
+| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | MinIO's | **unset** — the task role provides credentials |
+| `S3_REGION` | `us-east-1` | the bucket's region |
+| `GOOGLE_GEMINI_API_KEY` | worker only | worker only; the HTTP task never gets it |
+
+Networking is a deployment concern rather than a flag: one load balancer routes `/api/*` to the API service and everything else to the web service, which is what lets them share an origin. The migration task runs once before a service update — nothing migrates on boot.
 
 ## Debug
 
