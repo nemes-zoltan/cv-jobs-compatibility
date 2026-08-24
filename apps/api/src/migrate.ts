@@ -18,7 +18,7 @@ import { redactDatabaseUrl, resolveDatabaseUrl } from './config/database-url'
  * `drizzle-kit generate` stays exactly as it is: a developer tool that never
  * enters an image. Only applying moved.
  *
- * Nothing migrates on boot - see DECISIONS.md. This runs as a one-off task
+ * Nothing migrates on boot - see ARCHITECTURE.md. This runs as a one-off task
  * before a service update, because several instances racing to alter the same
  * schema on every scaling event is the problem being avoided.
  */

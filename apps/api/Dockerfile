@@ -12,7 +12,7 @@
 #
 # One image because all three are built from the same sources and share the
 # config, the database client, the storage client and the schema - see
-# DECISIONS.md. In a deployment that is two long-running services scaling on
+# ARCHITECTURE.md. In a deployment that is two long-running services scaling on
 # different signals (request volume and queue depth) plus a one-off task run
 # before a service update.
 

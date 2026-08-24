@@ -213,6 +213,9 @@ importers:
       '@opentelemetry/exporter-trace-otlp-http':
         specifier: ^0.221.0
         version: 0.221.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/id-generator-aws-xray':
+        specifier: ^2.1.0
+        version: 2.1.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/resources':
         specifier: ^2.10.0
         version: 2.10.0(@opentelemetry/api@1.9.1)
@@ -2957,6 +2960,12 @@ packages:
 
   '@opentelemetry/exporter-zipkin@2.10.0':
     resolution: {integrity: sha512-7gsvgf0UDoJ4l9ObrwBmz5G/ZogiPk+lq+g5GpLp24YQF/vPM/BSsnOfcLnfinast5ASUgLo78uSC/ObjlnXgg==}
+    engines: {node: ^18.19.0 || >=20.6.0}
+    peerDependencies:
+      '@opentelemetry/api': ^1.0.0
+
+  '@opentelemetry/id-generator-aws-xray@2.1.0':
+    resolution: {integrity: sha512-hyyEpR6cwxmrXRSQPCIOUkTY+RQRM+zSUpzF3wnu56Ow7Rv+yU0N18b64cVoX2Ir98lFeesF6nrynEa4eN4gfw==}
     engines: {node: ^18.19.0 || >=20.6.0}
     peerDependencies:
       '@opentelemetry/api': ^1.0.0
@@ -14244,6 +14253,11 @@ snapshots:
       '@opentelemetry/resources': 2.10.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-trace': 2.10.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/semantic-conventions': 1.43.0
+
+  '@opentelemetry/id-generator-aws-xray@2.1.0(@opentelemetry/api@1.9.1)':
+    dependencies:
+      '@opentelemetry/api': 1.9.1
+      '@opentelemetry/sdk-trace-base': 2.10.0(@opentelemetry/api@1.9.1)
 
   '@opentelemetry/instrumentation-amqplib@0.68.0(@opentelemetry/api@1.9.1)':
     dependencies:

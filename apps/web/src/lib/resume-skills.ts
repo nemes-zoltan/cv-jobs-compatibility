@@ -54,7 +54,7 @@ const MIN_MATCHABLE_LENGTH = 2
  * but not written down does not appear.
  *
  * The proper fix is asking the model which skills belong to which role, and
- * that means a new prompt version - see DECISIONS.md.
+ * that means a new prompt version - see ARCHITECTURE.md.
  */
 export function skillsMentionedIn(
   experience: ResumeExperienceModel,

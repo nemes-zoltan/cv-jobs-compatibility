@@ -44,7 +44,7 @@ export class QueueModule implements OnModuleInit, OnApplicationShutdown {
               schema: PG_BOSS_SCHEMA,
               // The schema is installed by a migration, like every other table.
               // Letting pg-boss build it on boot would have each instance race
-              // to alter the schema on every deploy - see DECISIONS.md.
+              // to alter the schema on every deploy - see ARCHITECTURE.md.
               migrate: false,
               createSchema: false,
               supervise,

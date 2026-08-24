@@ -1,375 +1,406 @@
 # Decisions
 
-Architecture, the trade-offs behind it, and the product calls that shaped it.
+Answers to the eight things the brief asks for, in order. Short on purpose —
+every trade-off written out in full is in [ARCHITECTURE.md](ARCHITECTURE.md).
 
-Implementation detail belongs in the code. If a question can be answered by
-opening a file — which variables exist, what a class is called, how a module is
-wired — it does not belong here.
+**What it does:** upload your CV, paste in job postings, and for each one get a
+fit score, the skills you're missing, how your experience lines up, and what to
+prepare for the interview.
 
-Each entry is the decision, why it was made, and what it cost. When a decision is
-reversed, rewrite the entry rather than appending to it: this describes the
-system as it stands today.
+## Contents
+
+- [Demo video](#demo-video)
+- [Screenshots](#screenshots)
+- [a. Quick setup](#a-quick-setup)
+- [b. Architecture overview](#b-architecture-overview)
+- [c. Productionising and scaling](#c-productionising-and-scaling)
+- [d. LLM approach and decisions](#d-llm-approach-and-decisions)
+- [e. Key technical decisions](#e-key-technical-decisions)
+- [f. Engineering standards](#f-engineering-standards)
+- [g. How I used AI tools](#g-how-i-used-ai-tools)
+- [h. What I'd do differently with more time](#h-what-id-do-differently-with-more-time)
+
+The long-form version of every trade-off is in
+[ARCHITECTURE.md](ARCHITECTURE.md).
 
 ---
 
-## Architecture
+## Demo video
 
-### One repository, one shared contract
+[Resume Job Compatibility Matcher (AWS Deployed).mp4](demos/Resume%20Job%20Compatibility%20Matcher%20%28AWS%20Deployed%29.mp4)
 
-The API, the web app and the shared UI library live in a single Nx workspace, so
-a change that crosses them is one commit and one review.
-
-The load-bearing part is the shared contract packages. Every request and response
-has one definition: the API's DTOs implement the request types and its handlers
-declare the response types, so the server cannot drift from the contract without
-failing to compile, and the web app compiles against the same definitions rather
-than a hand-copied duplicate. Because the contract describes JSON, timestamps are
-strings — declaring `Date` in a shared model would be true on the server and
-false on the client.
-
-It is two packages, split on whether a symbol survives compilation. `types` is
-erased entirely; `constants` holds the runtime values several places must agree
-on — upload limits the browser and the API both enforce, and the enum members
-Postgres declares. The database schema imports those lists rather than restating
-them, so a status the API can set is always one the column accepts. `libs/` holds
-generic building blocks and `domains/` holds packages that only mean something to
-this product, which is why both live under the latter.
-
-The cost is a heavier toolchain than two repositories would need, and a contract
-change now ripples to both sides at once. That is the point, but it does mean
-neither side can quietly ship ahead of the other.
-
-### Authentication is stateless, and sessions cannot be revoked
-
-The largest trade-off in the system.
-
-Access and refresh tokens are JWTs; there is no session table. Access tokens are
-short-lived and verified by signature alone, with no database round trip, which
-is what makes a guarded endpoint cheap enough for client components to poll.
-Refresh tokens are long-lived and are never rotated.
-
-Rotation with reuse detection is the stronger design and it breaks under a
-polling client: several requests expire in the same instant, all refresh at once,
-the first invalidates the token the others are still holding, and reuse detection
-reads the result as theft and ends the session. Avoiding that needs single-flight
-refresh logic in every client, or a server-side grace window, or both. Without
-rotation, concurrent refreshes are idempotent and none of that machinery exists.
-
-What it costs is real: signing out clears the cookies, but the refresh token stays
-cryptographically valid until it expires. A stolen token cannot be revoked, a
-session cannot be ended from another device, and changing a password does not
-invalidate sessions already open. A table holding one hash per session is the
-fix, and it is the first thing to add if this ever holds real accounts.
-
-### Tokens live in cookies, not in JavaScript
-
-Both tokens are `httpOnly` cookies and neither ever appears in a response body.
-No script on the page can read them, and a browser authenticates by simply making
-a request — nothing to attach per call, nothing to restore after a reload. That is
-what lets client components poll without an auth wrapper around every `fetch`.
-
-The alternative, a bearer token in `localStorage`, trades CSRF exposure for XSS
-exposure. Neither is free; this keeps the credential out of reach of the exposure
-that is harder to contain. CSRF is then held off by `SameSite` plus the fact that
-every state-changing route is a `POST` with a JSON body — adequate while both
-apps share an origin, insufficient the moment cross-site form posts matter.
-
-Tokens carry a user id and nothing else. Anything beyond identity is read at the
-point of use, so a token can never serve a stale name or a permission that has
-since been withdrawn, and a deleted account stops working immediately rather than
-when its token happens to expire.
-
-The auth layer is hand-written — a guard that reads a cookie and verifies it —
-rather than Passport. With a single strategy, the strategy abstraction is three
-dependencies of indirection around ten lines. A second one, OAuth or API keys,
-would be the point to reconsider.
-
-### A third cookie tells the router a session exists
-
-Neither token can answer "is this browser signed in?" for the web app's router.
-The access cookie expires in a minute while the session lives for a week, so
-gating on it would bounce an active user to the login form every minute. The
-refresh cookie could answer it, but it is scoped to `/api/auth` precisely so the
-long-lived credential does not ride along on ordinary requests — which means a
-request for `/` carries neither.
-
-So signing in also sets `session=1`: `httpOnly`, `path=/`, and the refresh
-token's lifetime. It is not a credential. Presenting it authenticates nobody, no
-endpoint reads it, and its value is a constant, so there is nothing in it worth
-stealing. Its only reader is Next.js middleware deciding between a page and a
-redirect.
-
-What it buys is a redirect that happens before anything renders. What it costs is
-a third cookie that has to be set and cleared in step with the other two — and a
-hint that can be wrong. A deleted account or a rotated signing key leaves the
-marker in place beside tokens the API will no longer accept, and the proxy then
-admits a request the page's own `/auth/me` call rejects a moment later.
-
-That disagreement is a redirect loop waiting to happen: the page sends the
-browser to the login form, the proxy reads the marker still sitting there and
-sends it back. So the app shell clears the cookies before it redirects, and
-redirects only once the API confirms they are gone. A failed session check that
-cannot be cleared — the API is unreachable — stops and offers to retry rather
-than redirecting into the loop.
-
-The cookie is an optimisation over the real check, never a replacement for it:
-every authorisation decision still happens at the API.
-
-Widening the refresh cookie to `path=/` would have avoided the extra cookie, at
-the price of attaching a week-long credential to every request to the origin.
-
-### Resume files never pass through the API
-
-The browser asks for a presigned URL, `PUT`s the file straight to object
-storage, and then tells the API it is done. The API signs URLs and reads objects
-back; it never handles file bytes.
-
-Sending the file through the API was the other candidate and would have been
-adequate — a CV is a few megabytes, and each user uploads roughly one, ever, so
-the upload path was never going to be this system's bottleneck. What decided it
-is that the presigned shape is the one that is already correct on a hyper-scaler
-rather than the one that would need revisiting there: no request-size ceiling at
-the load balancer, no memory per concurrent upload, and the API scaling on
-traffic rather than on file volume.
-
-The order matters and is the part worth defending. **Nothing is recorded until
-the upload has finished.** The alternative — create the row, hand out the URL,
-mark it complete afterwards — leaves a row for every upload anyone abandons at
-the file picker, and a user whose browser dies between the `PUT` and the
-confirmation sees a resume stuck processing forever. Recording last means an
-abandoned upload leaves an unreferenced object nobody can see, and the user
-simply retries. The orphan moves from the side that is visible and broken to the
-side that is invisible and cheap.
-
-What it costs:
-
-- **CORS is back.** "The web app and the API are one origin" holds for the two
-  applications, but a browser `PUT` to the storage host is cross-origin by
-  construction, so the bucket needs its own policy. MinIO is configured to match
-  locally so this is not discovered after deployment.
-- **The client hands us the key.** It is untrusted input, so the user id is a
-  path segment and the API refuses any key whose prefix is not the caller's.
-  Signing the key when it is minted is the stronger version and is not built.
-- **Size is not enforced at the bucket.** The declared size is checked before a
-  URL is signed, and the object's real size is checked before it is processed,
-  but a client that lies can still write an oversized object first. A presigned
-  POST policy with `content-length-range` is the fix if it matters.
-- **Orphaned objects accumulate.** Nothing deletes an object whose upload was
-  never confirmed. Accepted for now: it is a few kilobytes per rare failure and
-  invisible to users. The intended cleanup is a scheduled job that lists objects
-  written between one and twenty-four hours ago and deletes those with no row —
-  the lower bound is load-bearing, since without it the sweep deletes files whose
-  confirmation is still in flight.
-
-### The queue is a table in the same database
-
-pg-boss, so jobs live in Postgres beside the data they operate on. No broker to
-run, no second thing that can be down, and — because the queue and the domain
-tables share a transaction — a row and the job that processes it can be written
-atomically. Without that, an enqueue failing after a commit strands a resume
-that nothing will ever pick up.
-
-The cost is that this does not scale like a real broker. At high throughput,
-queue traffic competes with application queries for the same connections and the
-same disk. Well past anything here, and SQS is the migration when it arrives.
-
-### `hasResume` is a question, not a column
-
-Which screen the app opens on depends on whether a CV has made it through the
-pipeline. That could be a boolean on `users`, and it would be wrong sooner or
-later: the row that makes it true appears in a **worker**, not in a request, so
-the flag would be written by a process the user never talks to and left stale by
-any failure between the two.
-
-So `UserModel.hasResume` is read from the `resumes` table on every `/auth/me`.
-A row exists there only when everything succeeded, which makes its presence the
-whole answer. The cost is one indexed lookup per session check, and a value that
-can go stale in a tab that is already open — which is why the session can be
-re-read, and why the page that finishes an upload does so before it routes.
-
-The routing itself stays in the pages rather than the proxy. The proxy sees only
-cookies, and no cookie can be set at the moment a worker finishes.
-
-### The pipeline is a chain of steps, and only some failures retry
-
-`IngestionService` holds the order and nothing else: text, then the model, then
-the rows. Each step is its own service — one owns every write to
-`resume_ingestions`, one turns the stored file into text, one runs the model and
-records the attempt, one writes the resume and its children. Reading the
-orchestrator is meant to be enough to know what happens to an uploaded CV.
-
-The distinction that runs through all of it is retryable versus terminal.
-Anything a later attempt could survive — a storage timeout, a rate-limited model
-— is thrown and reaches pg-boss, which retries with backoff. Anything that would
-repeat identically — an unreadable file, output that is not JSON, a document that
-is not a CV — raises `TerminalIngestionError`, and the orchestrator ends the
-ingestion instead. Retrying those would spend two more minutes arriving at the
-same answer.
-
-The model's attempt is recorded before it is judged, so a failure while writing
-the resume rows is recoverable without paying for the call twice: a retry finds
-the stored response and goes straight to persistence.
-
-What this costs is a status that can lie briefly. `analyzing` is set before the
-call and nothing resets it if the process dies mid-request, which is what the
-abandonment window below exists to cover.
-
-### An upload is identified by its key, and a stuck one ages out
-
-There is no separate idempotency token. The storage key is minted server-side,
-carries a fresh uuid, is unique on the ingestion row, and cannot be reused by a
-client that does not own its prefix — so a confirmation repeated after a lost
-response returns the upload that already exists rather than creating a second.
-
-The simultaneous case is left to the database. Two confirmations of one key race,
-the unique index rejects the loser, and its transaction rolls back — taking with
-it the job it had just enqueued, because that enqueue was inside the same
-transaction. Swallowing the conflict instead (`on conflict do nothing`) would
-commit and strand a duplicate job, which is why the insert is allowed to throw.
-The worker is re-entrant for the same reason: it claims a row only if that row
-has not already finished, so a redelivered job does nothing and an interrupted
-one resumes.
-
-What is deliberately missing is a timeout. Nothing marks an abandoned ingestion
-failed — a worker that dies mid-file leaves a row that no longer moves, and the
-API keeps reporting it as in progress for exactly as long as it sits there.
-
-The way out is a person, not a sweeper. After three minutes without a status
-change the browser stops saying "working" and offers to delete the upload, which
-removes the row, its children and the stored file in one go. The same button
-handles a rejected CV and replacing one that is already in, so there is one path
-out of every dead end rather than three.
-
-Deleting an upload whose worker is merely slow is safe: the handler claims a row
-before it works on one, so a job that arrives afterwards finds nothing and drops
-itself.
-
-The cost is that three minutes is a judgement, not a measurement. A job that is
-still legitimately retrying can be presented as stuck, and someone who acts on
-that pays for the same CV twice.
-
-Its schema is installed by a committed migration generated from
-`getConstructionPlans()`, with `migrate` and `createSchema` turned off. pg-boss
-will happily build and upgrade its own tables on boot, which is the same
-every-instance-races-to-alter-the-schema problem the application's own
-migrations avoid. Upgrading pg-boss therefore means a new migration from
-`getMigrationPlans()`, not a version bump alone.
-
-### One codebase, two entrypoints
-
-`src/main.ts` serves HTTP; `src/worker.ts` runs the queue. Same sources, same
-dependencies, two bundles, and in a deployment one image started with two
-different commands as two services that scale independently — the API on request
-volume, the worker on queue depth.
-
-A separate application would have made that split heavier: the two share the
-config, the database client, the storage client and the schema, so it would have
-meant extracting all of that into libraries to keep one copy. The cost of this
-shape is that neither entrypoint can be deployed without rebuilding both, and
-the worker image carries the HTTP dependencies it never uses.
-
-Only the worker supervises the queue — expiring, archiving, cron. Several API
-instances doing maintenance on the same tables would be pure contention.
-
-### Development stands in S3 with MinIO, not a mock
-
-MinIO speaks the S3 API, so the code that talks to it locally is the code that
-talks to S3 in a deployment. The difference is three configuration values:
-development sets an endpoint, forces path-style addressing and supplies static
-credentials; production sets none of them, which is what makes the SDK derive
-the real endpoint and take short-lived credentials from the task role. No static
-key pair has to exist in a deployed task definition.
-
-LocalStack would have emulated the rest of AWS as well, which is a larger
-dependency for one bucket.
-
-### SQL stays visible and migrations stay deliberate
-
-Drizzle rather than a full ORM: the schema is TypeScript, and migrations are
-generated SQL that is reviewed and committed like any other code. The cost is
-explicit joins and no lazy-loaded relations.
-
-Nothing migrates at startup. Applying migrations is a separate step, which in a
-deployment is a one-off task run before the service update. Automatic migration
-on boot would have every scaling event race to alter the schema.
-
-### The web app and the API are one origin
-
-A single load balancer routes `/api/*` to the API and everything else to the web
-app. They then share an origin in production: no CORS, no cross-site cookies, no
-third-party cookie policy to fight. Locally the two ports are still same-site, so
-the cookie behaviour is identical in both places rather than something that only
-breaks after deployment.
-
-The cost is that the two can no longer be deployed to unrelated domains without
-revisiting the cookie strategy.
+Recorded against the AWS deployment: registration, CV upload straight to S3,
+the worker ingesting it, the trace in X-Ray, then job postings scored and
+ranked.
 
 ---
 
-## Product
+## Screenshots
 
-### Registering signs you straight in
+### Authentication
 
-A new account gets its session immediately rather than being bounced to a sign-in
-form to retype what it just submitted. There is no email verification gate,
-because nothing in the product yet depends on an address being real.
+![Sign up](demos/SignUp.png)
+![Sign in](demos/SignIn.png)
 
-### A failed sign-in never says which half was wrong
+### Onboarding
 
-An unknown address and a wrong password return the same message, and take about
-the same time to do it. The alternative turns the sign-in form into a tool for
-discovering which addresses have accounts.
+![Onboarding](demos/Onboarding.png)
 
-Registration is necessarily the exception — it has to reject a duplicate address —
-so that route remains an enumeration vector, which is one reason rate limiting
-belongs on the list below.
+### Dashboard
 
-### Password rules are length and nothing else
+![Dashboard](demos/Dashboard.png)
 
-A floor and a ceiling, no composition requirements. Mandatory symbols and digits
-push people towards predictable substitutions of a weak base word, and NIST
-stopped recommending them years ago. The ceiling only exists so nobody hands the
-hashing function a megabyte.
+### My Resume
 
-### A session lasts a week and does not slide
+![My Resume](demos/MyResume.png)
+![My Resume — skills](demos/MyResume2.png)
 
-Refresh tokens are not extended on use, so a session ends a fixed interval after
-it began rather than living forever for anyone who stays active. Signing in again
-once a week is a small enough cost for a bounded worst case on a credential that
-cannot be revoked.
+### Jobs list
+
+![Roles list](demos/RolesList.png)
+
+### Job details
+
+![Job detail](demos/JobDetail.png)
+![Job detail — requirements](demos/JobDetail2.png)
+![Job detail — worth knowing](demos/JobDetail3.png)
+![Job detail — interview process](demos/JobDetail4.png)
+
+### Job matching
+
+![Match — score](demos/JobMatch.png)
+![Match — requirements](demos/JobMatch2.png)
+![Match — interview prep](demos/JobMatch3.png)
+
+### Tracing
+
+One posting, end to end in X-Ray. The API answers in 83ms; the two Gemini calls
+behind it take 13.5s and 21.4s in the worker.
+
+![X-Ray trace](demos/Traces.png)
 
 ---
 
-## What we have not built
+## a. Quick setup
 
-Deliberate omissions, not oversights.
+Full instructions are in the [README](README.md). The short version:
 
-- **Server-side session revocation** — the consequence of the stateless design
-  above, and the first thing to add for real accounts.
-- **Rate limiting** on sign-in and registration. Both currently answer as fast as
-  password hashing allows.
-- **CSRF tokens.** `SameSite` carries it today; a token pattern is needed before
-  accepting cross-site requests.
-- **Email verification, password reset, account lockout.**
-- **Containers and deployment.** The single-origin shape above is a plan, not
-  something that has been stood up; no Dockerfiles exist yet.
-- **Observability.** No structured logging, tracing or metrics beyond a health
-  check.
-- **OCR.** A scanned CV is a picture of text, and neither extractor reads one.
-  Below 200 characters of extracted text the ingestion is marked `failed` rather
-  than sending near-empty text to a model that would invent a CV from it. The
-  fix, if it matters, is a model that reads the PDF directly rather than an OCR
-  step of our own.
-- **More than one CV per account.** One resume, hard-locked, and no way to
-  replace it: the only route to a new CV is deleting the upload behind the old
-  one. Replacing, keeping a history, and choosing which CV a role is scored
-  against are all the same feature, and it is the next thing to build here.
-- **Skills tied to the roles they were used in.** `resume_skills` hangs off the
-  resume, not off an experience, because the extraction schema asks for one flat
-  list. The CV page approximates it by looking for skill names in each role's own
-  bullet text, which finds what was written down and misses what was not. Doing
-  it properly means asking the model which skills belong to which role, and that
-  is a new prompt version and a re-extraction.
-- **Vector search.** The local database image can support it, but nothing has
-  been chosen or modelled — that decision belongs to the retrieval work and will
-  be recorded here when it is made.
+```bash
+pnpm install
+cp apps/api/.env.example apps/api/.env     # add a Gemini API key
+cp apps/web/.env.example apps/web/.env
+docker compose up -d                        # Postgres + MinIO
+pnpm --filter @cv-jobs-compatibility/api run db:migrate
+pnpm dev
+```
+
+Web on `:3000`, API on `:4000`. You need a free
+[Gemini API key](https://aistudio.google.com/apikey) — no card required.
+
+For deploying to AWS, see [infra/README.md](infra/README.md).
+
+---
+
+## b. Architecture overview
+
+```mermaid
+flowchart TB
+    Browser
+
+    subgraph AWS
+        ALB["Load balancer<br/>one hostname"]
+        Web["Web · Next.js<br/>2 tasks"]
+        API["API · NestJS<br/>2 tasks"]
+        Worker["Worker<br/>2 tasks"]
+        DB[("Postgres · RDS<br/>data + job queue")]
+        S3[("S3<br/>CV files")]
+        XRay["X-Ray"]
+    end
+
+    Gemini["Gemini API"]
+
+    Browser -->|"/api/*"| ALB
+    Browser -->|"everything else"| ALB
+    ALB --> API
+    ALB --> Web
+    Browser -.->|"uploads the file directly"| S3
+
+    API --> DB
+    API -->|"signs upload URLs"| S3
+    Worker --> DB
+    Worker -->|"reads the file"| S3
+    Worker --> Gemini
+
+    API -.-> XRay
+    Worker -.-> XRay
+```
+
+Two ideas shaped everything else.
+
+**The file never touches the API.** The browser asks for a signed URL, uploads
+straight to S3, then tells the API it's done. The API handles the paperwork,
+never the bytes. No upload size limit at the load balancer, no memory used per
+upload.
+
+**The slow work isn't in the request.** Parsing a CV is an LLM call taking 15–30
+seconds. That can't happen while someone waits on HTTP. So the upload writes a
+row, queues a job, and returns. A separate worker does the real work and the page
+polls until it's done.
+
+Upload flow:
+
+1. Browser asks the API for an upload URL
+2. Browser uploads the file to S3 itself
+3. Browser tells the API the upload finished
+4. API writes a row and queues a job — **in one transaction**
+5. Worker picks it up, pulls the file, calls Gemini, saves the parsed CV
+
+Step 4 is the reason the queue lives in Postgres. The row and its job are written
+together or not at all. With a separate broker, queueing could fail after the row
+was saved, and that CV would sit forever with nothing coming to process it.
+
+### The stack
+
+| | Choice | Why |
+| --- | --- | --- |
+| Repo | Nx monorepo, pnpm | One commit changes the API, the web app and the types they share |
+| API | NestJS | Structure I don't have to invent |
+| Web | Next.js, App Router | Server rendering, builds to a small container |
+| UI | Tailwind, shadcn | Components live in my repo, so I can change them |
+| Database | Postgres 17, Drizzle | I wanted to keep writing SQL and reviewing migrations |
+| Queue | pg-boss | A table in the same Postgres. No broker to run |
+| Files | S3, MinIO locally | MinIO speaks the same API, so local and deployed code match |
+| LLM | Google Gemini | Free tier, structured JSON output, no card to start |
+| Auth | JWTs in httpOnly cookies, hand-rolled | One login method didn't justify a library |
+| Tracing | OpenTelemetry → X-Ray | The app only speaks OTLP; the destination is config |
+| Deploy | ECS Fargate, ALB, RDS | Containers without managing servers |
+| Infra | Terraform | Checked in, and one command tears it all down |
+
+---
+
+## c. Productionising and scaling
+
+It is already deployed — ECS Fargate behind a load balancer, RDS, S3, Terraform,
+2 API + 2 web + 2 worker tasks, CPU autoscaling. Recorded, then destroyed. See
+[the demo](demos/) and [infra/README.md](infra/README.md).
+
+**What's still missing before real users:**
+
+| | |
+| --- | --- |
+| TLS | The AWS account I had couldn't issue a certificate. Needs ACM plus a domain — no application change |
+| Session revocation | See (e). A session table |
+| Connection pooling | RDS Proxy or PgBouncer, so tasks share a pool instead of each opening its own |
+| Rate limiting | Login and register answer as fast as password hashing allows |
+| CI/CD | Images build on my machine from a script. Nothing runs on push |
+| Structured logs and metrics | Tracing is in; logging is plain text and no metrics are published |
+| Backups, multi-AZ | Turned off deliberately for a stack destroyed the same day |
+
+**Where it breaks, in order.** Nothing was load tested; this is arithmetic from
+configured values.
+
+1. **The LLM, not the infrastructure.** Every handler is `batchSize: 1` and
+   pg-boss's `localConcurrency` defaults to 1, so each worker runs **one job per
+   queue at a time**. Four queues — CV extraction, job extraction, job insights,
+   job matching — means a worker can have four jobs in flight, but only one of
+   each kind. For CV uploads that is two at a time across the deployment.
+   Throughput is however fast Gemini answers, times two — and in the
+   [trace above](#tracing) that was 13.5s and 21.4s per call. The levers are
+   more worker tasks or raising `localConcurrency`.
+
+2. **pg-boss — not close.** A couple of jobs in flight means the queue is doing
+   single-digit queries per second. It handles hundreds to low thousands. Orders
+   of magnitude of headroom, which is the whole reason not to run a broker.
+
+**When I'd move to Redis or SQS:** not for throughput — that argument doesn't
+arrive until thousands of jobs/sec. It would be because the queue should stay up
+when Postgres doesn't, or because the data outgrew one database. The cost of
+moving is losing the transactional enqueue in step 4 above; getting that back
+means an outbox table and a relay, which is more machinery than pg-boss is.
+
+---
+
+## d. LLM approach and decisions
+
+**Model: Google Gemini Flash.** Considered OpenAI and Anthropic. Gemini won on a
+usable free tier, native structured output, and long context — a CV plus a job
+posting fits with room to spare. The model name is pinned, never an alias like
+`-latest`, because every extraction stores the model that produced it and that
+record is worthless if the name quietly means something else next month.
+
+**Embedding model and vector database: none, deliberately.** RAG solves not
+being able to fit your corpus in the context window. A CV and a job posting both
+fit whole, and chunking them would throw away the structure that carries the
+meaning — "5 years at this company" means nothing split from its dates. Right at
+this size, wrong once someone has hundreds of saved postings to search across.
+That's when pgvector goes in; the Postgres image already ships it, unenabled.
+
+**Orchestration framework: none.** No LangChain, no LlamaIndex. Four prompts and
+four schemas didn't justify a framework I'd spend longer reading than writing
+the calls myself. It's about 100 lines of a Gemini service.
+
+**Prompts and context.** Versioned in their own package
+(`domains/node/prompt-schemas`), not scattered through the code. Each version
+pairs a prompt, a Zod schema, and the JSON Schema generated from it. Every
+stored result records the version that produced it, and released versions are
+never edited — so a `promptVersion` in the database keeps meaning what it meant.
+
+**Guardrails.**
+
+- **Structured output enforced twice.** The JSON Schema is sent to the model, and
+  the response is parsed with Zod. If the model returns something outside the
+  schema, parsing fails rather than half-valid data reaching the database.
+- **The schema snapshot is committed and tested.** It's generated from Zod and
+  from shared constants, so a change upstream could silently alter what a released
+  version asks the model for. A test compares the generated schema to the
+  committed file and fails if they drift.
+- **The model is asked to refuse.** Extraction prompts return `valid: false` and
+  a plain rejection reason when the input isn't what it should be — a CV pasted
+  into the job box, an article, a blank page. That refusal is surfaced to the
+  user instead of a made-up score.
+- **Grounding.** Prompts say to use only what the document states, `null` when a
+  field is absent, and never stretch a value to fit an enum. Where a judgement is
+  wanted rather than a copy (seniority, industry), the prompt says so explicitly.
+- **Temperature 0** everywhere. These are extraction tasks; creativity is a
+  defect.
+- **Garbage in is caught before the model.** Under 200 characters of extracted
+  text, the upload fails rather than handing near-empty text to a model that
+  would happily invent a CV from it.
+- **Web search is off** unless explicitly enabled, and the prompt changes when it
+  is — telling a model it has search when it doesn't is an invitation to invent
+  sources.
+
+**Quality.** Every prompt version has schema tests. Failures are classified as
+retryable or terminal: a rate limit or a timeout gets retried with backoff, while
+output that isn't valid JSON or a document that isn't a CV stops immediately —
+retrying would spend two more minutes reaching the same answer. The model's raw
+response is stored before it's judged, so a database failure afterwards doesn't
+mean paying for the call twice.
+
+What's missing: no evaluation set, no regression suite for output quality. I can
+tell you a response matched its schema, not that the score was any good.
+
+**Observability.** OpenTelemetry throughout, exported to X-Ray. The interesting
+part is that trace context is passed through the job queue, so an upload is a
+single trace spanning the API, Postgres, S3, the worker and the Gemini call —
+two processes that never talk to each other directly. Model calls record the
+model, temperature and token usage as span attributes. See the
+[trace](#tracing).
+
+---
+
+## e. Key technical decisions
+
+### Sessions can't be revoked
+
+- JWTs, no session table. Access tokens are verified by signature alone, so a
+protected endpoint costs no database query and the frontend can poll freely.
+
+### The queue is a Postgres table
+
+- `pg-boss` rather than Redis or SQS. No extra service to run, and the real reason:
+Atomicity guarantees, no need for Outbox tables etc..
+
+### The browser uploads straight to S3
+
+- Signed URL, direct upload, and **nothing is recorded until the upload finishes**.
+This means the POST with the upload data could fail and would end up with data in S3
+that is not used. For this would need to setup a cron worker that calls the backend
+every couple of hours does a short sync for the files uploaded in last 24 hours and
+deletes anything that is missing from DB.
+
+### One hostname for both apps
+
+- The load balancer routes `/api/*` to the API and everything else to the web app,
+so they share an origin. No CORS, no cross-site cookie rules to fight.
+
+**Cost:** they can't be split onto separate domains without redoing cookies.
+
+### AI Communication always Async and using Polling for updates
+
+- For operations that can take time we have workers handling that in the background.
+- All jobs were architected with `idempotency` as core principle
+- App offers manual retry buttons if certain operations fail to complete in X seconds, in case worker dies mid Job etc..
+- Polling for simple real time updating, easy to implement
+- Jobs  `CV extraction`, `job extraction`, `job insights`, `job matching`, these were seperated so Gemini doesnt have to do too many things at once and we can more quickly show something to the user.
+
+### AI Validates before we commit
+
+- Before committing anything to the DB AI validates if Resume is indeed a valid resume only after AI returns the structured Resume we commit to DB
+- Before committing Job to db AI also validates and returns structured Job data
+
+### Database Design
+
+- Resumes were planned with possibility to have multiple resumes exist for one user. But this was out of scope to implement
+- Jobs were also planned to be an isolated entity and matching to be something that ties the Job and User together, thus other users could ask for matching for any Job
+
+### App has Onboarding
+
+- Before the app allows you to start uploading any Jobs you are prompted to upload a valid Resume and thus stuck on the Onboarding Screen
+
+
+## f. Engineering standards
+
+**Followed:**
+
+- **One definition per contract.** Request and response types live in a shared
+  package. The API implements them and the web app compiles against them, so the
+  two can't drift without failing to build.
+- **Types over comments.** Zod schemas for anything crossing a boundary.
+- **145 unit tests**, on the parts where being wrong is expensive: auth, config
+  resolution, prompt schemas, the ingestion pipeline's retry classification.
+- **Containerised**, and the local stack mirrors production — MinIO speaks S3, so
+  the storage code is the same code in both.
+- **Migrations reviewed like code**, generated as SQL and committed.
+- **Infrastructure as code.** Terraform, with a teardown script that verifies
+  nothing was left behind.
+- **Secrets never in source or in state.** The task role provides AWS
+  credentials; there's no static key pair anywhere in the deployment.
+- **Decisions written down** — this file and ARCHITECTURE.md exist because the
+  reasoning is the part that gets lost.
+
+**Skipped:**
+
+- **No integration or end-to-end tests.** Unit tests only. No test hits a real
+  database or a real model.
+- **No CI.** Nothing runs on push.
+- **No structured logging.** Nest's default text output.
+- **Coverage isn't measured or enforced.**
+- **No evaluation harness for LLM output quality** — see (d).
+- **Accessibility wasn't audited**, only kept in mind via the component library.
+
+---
+
+## g. How I used AI tools
+
+I used Claude Code to write this application as a reasoning and coding partner. Every feature and decision was discussed before we committed to coding. I did not use any more complicated AI coding setup because didint see need for it and wanted to make sure architecture is discussed first before coding.
+
+## h. What I'd do differently with more time
+
+**Technical:**
+
+1. **Session revocation.** The first thing. A session table, so logging out
+   actually ends the session.
+2. **RDS Proxy**, so tasks share a database pool instead of each opening its
+   own.
+3. **Integration tests** against a real Postgres, at least for the ingestion
+   pipeline — the retry-versus-terminal logic is the most intricate part of the
+   system and unit tests only cover the classification, not the flow.
+4. **CI**, with tests and image builds on push.
+5. **Structured logging and a queue-depth metric**, so the worker can autoscale
+   on something meaningful instead of running at a fixed count.
+
+**Features:**
+
+1. **Multiple CVs per account**, with history and the choice of which to score
+   against — currently one CV, hard-locked.
+2. **Users can match against any Job in the platform**
+3. **Skills tied to the roles they were used in.** They currently hang off the
+   CV as one flat list, so the UI approximates the link by matching skill names
+   in each role's text. Doing it properly is a new prompt version.
+4. **AI CV Generation** Ask AI to tailor your CV for different jobs needs before applying
+5. **Top N Jobs in platform I would be top applicant for** Vector Postgres was chosen for this
+   But did not have time to implement, so that you could get the best Jobs in the platfrom you
+   would be top applicant for.
+6. **Job url should fetch description** so instead of having to paste the job description
+   the app could look up and fetch the description for you.

@@ -1,8 +1,3 @@
-/**
- * This is not a production server yet!
- * This is only a minimal backend to get started.
- */
-
 // Must be first: starts the OpenTelemetry SDK before any instrumented module
 // (http, express, pg) is required.
 import './instrumentation'

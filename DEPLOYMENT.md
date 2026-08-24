@@ -1,6 +1,6 @@
 # Deployment
 
-The plan for running this on AWS. **Nothing here has been stood up** — the two Dockerfiles exist and are tested locally, and everything below is the shape they are built for. Why it is shaped this way is in [DECISIONS.md](DECISIONS.md); this file is the mechanics.
+The plan for running this on AWS. **Nothing here has been stood up** — the two Dockerfiles exist and are tested locally, and everything below is the shape they are built for. Why it is shaped this way is in [ARCHITECTURE.md](ARCHITECTURE.md); this file is the mechanics.
 
 ## Shape
 
@@ -118,4 +118,4 @@ Migrations are written to be safe to apply before the old code stops running. A 
 - No CI. Images are built by hand.
 - No queue-depth metric published, so the worker cannot autoscale on anything meaningful yet.
 - No sweeper for postings nobody has saved, or for storage objects whose upload was never confirmed.
-- Sessions cannot be revoked — see DECISIONS.md. The first thing to fix for real accounts.
+- Sessions cannot be revoked — see ARCHITECTURE.md. The first thing to fix for real accounts.

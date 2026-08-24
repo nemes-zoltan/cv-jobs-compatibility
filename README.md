@@ -1,6 +1,18 @@
 # CV Jobs Compatibility
 
-Nx monorepo with a NestJS API and a Next.js web app.
+Upload a CV, add job postings, and get scored on fit, skill gaps and interview
+preparation. Nx monorepo with a NestJS API and a Next.js web app.
+
+> ### ▶ [Watch the demo](demos/) &nbsp;·&nbsp; 📄 [Read the decisions](DECISIONS.md)
+>
+> **[demos/](demos/README.md)** — a walkthrough recorded against the deployed
+> AWS stack: registration, a CV uploaded straight to S3, the worker ingesting
+> it, the trace in X-Ray, then job postings scored and ranked.
+>
+> **[DECISIONS.md](DECISIONS.md)** — setup, architecture and a diagram, the
+> LLM approach, key trade-offs, what was built and what wasn't. The long
+> version, with every trade-off written out, is in
+> [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Packages
 
@@ -13,7 +25,7 @@ Nx monorepo with a NestJS API and a Next.js web app.
 | `@cv-jobs-compatibility/constants` | `domains/shared/constants` | Shared domain constants | — | [README](domains/shared/constants/README.md) |
 | `@cv-jobs-compatibility/prompt-schemas` | `domains/node/prompt-schemas` | Versioned LLM prompts and response schemas | — | [README](domains/node/prompt-schemas/README.md) |
 
-Ports, environment variables, database setup and per-package commands live in those READMEs. Architecture, trade-offs and product decisions live in [DECISIONS.md](DECISIONS.md); the plan for running this on AWS is in [DEPLOYMENT.md](DEPLOYMENT.md).
+Ports, environment variables, database setup and per-package commands live in those READMEs. Architecture, trade-offs and product decisions live in [DECISIONS.md](DECISIONS.md). Running it on AWS — prerequisites, permissions, and the deploy and teardown scripts — is in [infra/README.md](infra/README.md), with the shape it deploys in [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Prerequisites
 

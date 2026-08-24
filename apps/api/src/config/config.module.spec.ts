@@ -121,6 +121,20 @@ describe('ConfigModule', () => {
       await expect(configFor({ NODE_ENV: undefined })).resolves.toMatchObject({ cookieSecure: false })
       await expect(configFor({ NODE_ENV: 'production' })).resolves.toMatchObject({ cookieSecure: true })
     })
+
+    /**
+     * The opt-out is for the demo deployment, whose load balancer has no
+     * certificate. It has to be asked for by name: anything other than the
+     * exact string leaves production secure, so a typo fails closed.
+     */
+    it('drops Secure in production only when COOKIE_SECURE is exactly "false"', async () => {
+      const inProduction = (COOKIE_SECURE?: string) => configFor({ NODE_ENV: 'production', COOKIE_SECURE })
+
+      await expect(inProduction('false')).resolves.toMatchObject({ cookieSecure: false })
+      await expect(inProduction('False')).resolves.toMatchObject({ cookieSecure: true })
+      await expect(inProduction('0')).resolves.toMatchObject({ cookieSecure: true })
+      await expect(inProduction(undefined)).resolves.toMatchObject({ cookieSecure: true })
+    })
   })
 
   describe('storage settings', () => {

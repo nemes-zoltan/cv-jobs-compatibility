@@ -28,7 +28,7 @@ export const registerSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(100, 'Name is too long'),
   email: z.email({ error: 'A valid email address is required' }).max(254),
   // Length is the only rule the API enforces, and composition requirements are
-  // deliberately absent - see DECISIONS.md.
+  // deliberately absent - see ARCHITECTURE.md.
   password: z
     .string()
     .min(12, 'Password must be at least 12 characters')

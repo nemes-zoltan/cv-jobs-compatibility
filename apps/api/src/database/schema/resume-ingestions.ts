@@ -8,7 +8,7 @@ export const ingestionStatus = pgEnum('ingestion_status', RESUME_INGESTION_STATU
 /**
  * One uploaded file and its pipeline state. This is what the client polls.
  *
- * A row appears only once the object is in storage - see DECISIONS.md for why
+ * A row appears only once the object is in storage - see ARCHITECTURE.md for why
  * nothing is recorded before that.
  */
 export const resumeIngestions = pgTable(

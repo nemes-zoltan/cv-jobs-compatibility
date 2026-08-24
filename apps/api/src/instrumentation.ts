@@ -1,5 +1,6 @@
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http'
+import { AWSXRayIdGenerator } from '@opentelemetry/id-generator-aws-xray'
 import { resourceFromAttributes } from '@opentelemetry/resources'
 import { NodeSDK } from '@opentelemetry/sdk-node'
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions'
@@ -18,6 +19,7 @@ import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions'
  * Configuration is the standard environment, and nothing is hard-coded here:
  *   OTEL_EXPORTER_OTLP_ENDPOINT  e.g. http://localhost:4318
  *   OTEL_SERVICE_NAME            e.g. cv-jobs-api
+ *   OTEL_ID_GENERATOR            `xray`, or unset for W3C ids
  *
  * The exporter speaks OTLP and nothing else, which is what makes the
  * destination a deployment concern rather than a code one: the same bundle
@@ -26,6 +28,21 @@ import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions'
  */
 
 const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT
+
+/**
+ * X-Ray does not accept a random trace id.
+ *
+ * It reads the first four bytes as a unix timestamp and rejects a segment whose
+ * timestamp is in the future or more than a month old - which a W3C id, being
+ * 16 random bytes, essentially always is. The generator differs only in
+ * spending those four bytes on the current time, so ids stay unique and remain
+ * valid W3C ids that any other backend reads normally.
+ *
+ * Opt-in rather than automatic: this is the one AWS-shaped thing in the file,
+ * and a developer exporting to the local Grafana container should get ordinary
+ * random ids.
+ */
+const idGenerator = process.env.OTEL_ID_GENERATOR === 'xray' ? new AWSXRayIdGenerator() : undefined
 
 /**
  * No endpoint, no telemetry.
@@ -43,6 +60,8 @@ if (endpoint) {
     // and appends `/v1/traces`.
     traceExporter: new OTLPTraceExporter(),
     instrumentations: [getNodeAutoInstrumentations()],
+    // `undefined` leaves the SDK on its own random-id default.
+    idGenerator,
   })
 
   sdk.start()

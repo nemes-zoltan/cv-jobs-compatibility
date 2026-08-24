@@ -37,7 +37,7 @@ import { ResumeIngestionsService } from './resume-ingestions.service'
  * row exists.
  *
  * File bytes never reach this process, and nothing is recorded until the upload
- * has finished - see DECISIONS.md for that ordering.
+ * has finished - see ARCHITECTURE.md for that ordering.
  */
 @UseGuards(JwtAuthGuard)
 @Controller('resumes/ingestions')

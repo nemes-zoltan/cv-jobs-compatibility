@@ -89,7 +89,7 @@ export class AuthService {
    * The refresh token itself is left alone: it is not rotated, so several
    * requests that expire at the same moment can all refresh concurrently
    * without racing each other. The cost of that simplicity is that the session
-   * cannot be revoked server-side - see DECISIONS.md.
+   * cannot be revoked server-side - see ARCHITECTURE.md.
    */
   async refresh(refreshToken: string | undefined): Promise<string> {
     const { sub } = await this.verifyToken(refreshToken, 'refresh')
